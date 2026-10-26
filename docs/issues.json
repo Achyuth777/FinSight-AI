@@ -1,0 +1,152 @@
+[
+  {
+    "day": 1,
+    "title": "Day 01: Make setup reproducible",
+    "body_file": "docs/issues/day-01.md"
+  },
+  {
+    "day": 2,
+    "title": "Day 02: Document the transaction contract",
+    "body_file": "docs/issues/day-02.md"
+  },
+  {
+    "day": 3,
+    "title": "Day 03: Expand CSV validation coverage",
+    "body_file": "docs/issues/day-03.md"
+  },
+  {
+    "day": 4,
+    "title": "Day 04: Add dataset provenance",
+    "body_file": "docs/issues/day-04.md"
+  },
+  {
+    "day": 5,
+    "title": "Day 05: Introduce database migrations",
+    "body_file": "docs/issues/day-05.md"
+  },
+  {
+    "day": 6,
+    "title": "Day 06: Enforce concurrent case uniqueness",
+    "body_file": "docs/issues/day-06.md"
+  },
+  {
+    "day": 7,
+    "title": "Day 07: Build a data-quality report",
+    "body_file": "docs/issues/day-07.md"
+  },
+  {
+    "day": 8,
+    "title": "Day 08: Learn causal velocity features",
+    "body_file": "docs/issues/day-08.md"
+  },
+  {
+    "day": 9,
+    "title": "Day 09: Add train-validation-test splits",
+    "body_file": "docs/issues/day-09.md"
+  },
+  {
+    "day": 10,
+    "title": "Day 10: Persist fitted pipelines",
+    "body_file": "docs/issues/day-10.md"
+  },
+  {
+    "day": 11,
+    "title": "Day 11: Add single-transaction inference",
+    "body_file": "docs/issues/day-11.md"
+  },
+  {
+    "day": 12,
+    "title": "Day 12: Measure calibration",
+    "body_file": "docs/issues/day-12.md"
+  },
+  {
+    "day": 13,
+    "title": "Day 13: Compare imbalance strategies",
+    "body_file": "docs/issues/day-13.md"
+  },
+  {
+    "day": 14,
+    "title": "Day 14: Add precision-recall curves",
+    "body_file": "docs/issues/day-14.md"
+  },
+  {
+    "day": 15,
+    "title": "Day 15: Explain individual classifier outputs",
+    "body_file": "docs/issues/day-15.md"
+  },
+  {
+    "day": 16,
+    "title": "Day 16: Track experiments with MLflow",
+    "body_file": "docs/issues/day-16.md"
+  },
+  {
+    "day": 17,
+    "title": "Day 17: Add Evidently reports",
+    "body_file": "docs/issues/day-17.md"
+  },
+  {
+    "day": 18,
+    "title": "Day 18: Add latency benchmarking",
+    "body_file": "docs/issues/day-18.md"
+  },
+  {
+    "day": 19,
+    "title": "Day 19: Improve network navigation",
+    "body_file": "docs/issues/day-19.md"
+  },
+  {
+    "day": 20,
+    "title": "Day 20: Add temporal account profiles",
+    "body_file": "docs/issues/day-20.md"
+  },
+  {
+    "day": 21,
+    "title": "Day 21: Add case event concurrency control",
+    "body_file": "docs/issues/day-21.md"
+  },
+  {
+    "day": 22,
+    "title": "Day 22: Add audit export",
+    "body_file": "docs/issues/day-22.md"
+  },
+  {
+    "day": 23,
+    "title": "Day 23: Add analyst authentication",
+    "body_file": "docs/issues/day-23.md"
+  },
+  {
+    "day": 24,
+    "title": "Day 24: Enforce per-workspace access",
+    "body_file": "docs/issues/day-24.md"
+  },
+  {
+    "day": 25,
+    "title": "Day 25: Add semantic retrieval",
+    "body_file": "docs/issues/day-25.md"
+  },
+  {
+    "day": 26,
+    "title": "Day 26: Add cited generation behind a switch",
+    "body_file": "docs/issues/day-26.md"
+  },
+  {
+    "day": 27,
+    "title": "Day 27: Complete accessibility audit",
+    "body_file": "docs/issues/day-27.md"
+  },
+  {
+    "day": 28,
+    "title": "Day 28: Optimize large-dataset interaction",
+    "body_file": "docs/issues/day-28.md"
+  },
+  {
+    "day": 29,
+    "title": "Day 29: Add CI and reproducible regression fixtures",
+    "body_file": "docs/issues/day-29.md"
+  },
+  {
+    "day": 30,
+    "title": "Day 30: Publish a model card and project walkthrough",
+    "body_file": "docs/issues/day-30.md"
+  }
+]
