@@ -1,0 +1,1 @@
+{"name":"finsight-local","private":true,"scripts":{"dev":"node execution/dev.mjs"}}
