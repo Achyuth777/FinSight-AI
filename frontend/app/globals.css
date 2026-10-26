@@ -2445,3 +2445,5 @@ td small {
 .metric.accent small {
   max-width: none;
 }
+
+.logout-control{display:flex;align-items:center;gap:10px;width:100%;margin-top:12px;padding:10px 12px;border-radius:8px;color:#aebdca;font-size:12px;text-align:left}.logout-control:hover{background:#28313b;color:#edf0f4}
