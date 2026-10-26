@@ -13,6 +13,7 @@ import {
   Database,
   FileSearch,
   LayoutDashboard,
+  LogOut,
   Loader2,
   Menu,
   Network,
@@ -429,7 +430,7 @@ export default function Workspace({ section }: { section: string }) {
         <div className="workspace-switch">
           <span className="workspace-avatar">F</span>
           <div>
-            FinSight workspace<small>Local analyst sandbox</small>
+            FinSight workspace<small>Private analyst workspace</small>
           </div>
           <ShieldCheck size={15} />
         </div>
@@ -469,9 +470,10 @@ export default function Workspace({ section }: { section: string }) {
           <div className="analyst">
             <span>AP</span>
             <div>
-              Analyst workspace<small>Single-user local MVP</small>
+              Analyst workspace<small>Single-analyst MVP</small>
             </div>
           </div>
+          <button type="button" className="logout-control" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.assign("/"); }}><LogOut size={15}/> Sign out</button>
         </div>
       </aside>
       <div className="workspace-body">
