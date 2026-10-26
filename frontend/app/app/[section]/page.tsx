@@ -1,5 +1,6 @@
 import Workspace from "@/components/workspace";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { isAuthenticated } from "@/lib/session";
 const sections = [
   "overview",
   "transactions",
@@ -16,5 +17,6 @@ export default async function Page({
 }) {
   const { section } = await params;
   if (!sections.includes(section)) notFound();
+  if (!(await isAuthenticated())) redirect("/login");
   return <Workspace section={section} />;
 }
