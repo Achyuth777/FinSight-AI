@@ -13,6 +13,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Brand } from "@/components/brand";
+import { HeroIntelligence } from "@/components/hero-intelligence";
 import { Button } from "@/components/ui/button";
 export default function Home() {
   const [stage, setStage] = useState(0);
@@ -42,25 +43,23 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             <span className="eyebrow">
-              <span className="status-dot" /> FINANCIAL INTELLIGENCE, MADE
-              EXPLAINABLE
+              <span className="status-dot" /> A NEW STANDARD FOR FINANCIAL INTELLIGENCE
             </span>
             <h1>
-              Detect the patterns.
+              See the pattern.
               <br />
-              Explain the risk.
+              Understand the risk.
               <br />
-              <span>Act with confidence.</span>
+              <span>Decide with clarity.</span>
             </h1>
             <p>
-              Turn unusual transactions into clear investigations.
-              <br className="desktop-break" /> Real machine learning. Connected
-              evidence. A human in control.
+              From unusual transactions to explainable decisions.
+              <br className="desktop-break" /> Real models, connected evidence, and the human judgment that matters.
             </p>
             <div className="hero-actions">
               <Button asChild>
                 <Link href="/app/overview">
-                  Explore the demo <ArrowRight size={17} />
+                  Launch the workspace <ArrowRight size={17} />
                 </Link>
               </Button>
               <a className="text-link" href="#methodology">
@@ -68,93 +67,10 @@ export default function Home() {
               </a>
             </div>
             <div className="hero-note">
-              OPEN DEVELOPMENT MVP <span>•</span> SYNTHETIC DATA SANDBOX
+              OPEN-SOURCE MVP <span>•</span> BUILT FOR TRANSPARENT INVESTIGATIONS
             </div>
           </motion.div>
-          <div
-            className="hero-visual"
-            aria-label="Illustrative transaction network"
-          >
-            <div className="visual-top">
-              <span>
-                <span className="status-dot" /> SIGNAL EXPLORER
-              </span>
-              <span>ILLUSTRATION / 01</span>
-            </div>
-            <svg
-              viewBox="0 0 550 360"
-              role="img"
-              aria-label="Connected transactions converge into an investigation"
-            >
-              <defs>
-                <pattern
-                  id="dots"
-                  width="22"
-                  height="22"
-                  patternUnits="userSpaceOnUse"
-                >
-                  <circle cx="1" cy="1" r="1" fill="#344037" />
-                </pattern>
-              </defs>
-              <rect width="550" height="360" fill="url(#dots)" />
-              {[
-                [80, 70],
-                [70, 240],
-                [190, 310],
-                [420, 70],
-                [475, 250],
-                [290, 35],
-                [380, 320],
-              ].map(([x, y], i) => (
-                <g key={i}>
-                  <path
-                    d={`M${x} ${y} Q275 ${y} 275 180`}
-                    fill="none"
-                    stroke={i === 4 ? "#d7f692" : "#425448"}
-                    strokeWidth={i === 4 ? 2 : 1}
-                    className={i === 4 ? "signal-path" : ""}
-                  />
-                  <circle
-                    cx={x}
-                    cy={y}
-                    r={i === 4 ? 12 : 8}
-                    fill={i === 4 ? "#d7f692" : "#26372c"}
-                    stroke="#6e846d"
-                  />
-                </g>
-              ))}
-              <circle
-                cx="275"
-                cy="180"
-                r="66"
-                fill="#18231c"
-                stroke="#4f6447"
-              />
-              <circle cx="275" cy="180" r="48" fill="#d7f692" />
-              <path
-                d="M255 165h15v30h-15m40-30h-15v30h15"
-                stroke="#1a291b"
-                strokeWidth="4"
-                fill="none"
-              />
-              <text x="410" y="285" fill="#c5d3c4" fontSize="11">
-                SHARED DEVICE
-              </text>
-              <text x="45" y="45" fill="#a5b6a8" fontSize="11">
-                TRANSACTIONS
-              </text>
-            </svg>
-            <div className="signal-card">
-              <div className="signal-icon">
-                <ScanLine size={20} />
-              </div>
-              <div>
-                <strong>A signal. A reason. A next step.</strong>
-                <small>Surface anomalies. Investigate the context.</small>
-              </div>
-              <ArrowUpRight size={18} />
-            </div>
-          </div>
+          <HeroIntelligence />
         </section>
         <div className="principle-strip">
           <span>Built for understanding.</span>
