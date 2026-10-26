@@ -1,10 +1,11 @@
 import os
 import uuid
 import json
+import hmac
 from datetime import datetime, timezone
 from typing import Literal
-from fastapi import FastAPI, HTTPException, UploadFile, File
-from fastapi.responses import Response
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi.responses import Response, JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, String, Text, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, Session
@@ -22,7 +23,23 @@ class Record(Base):
 url = os.getenv('DATABASE_URL','sqlite:///./finsight.db')
 engine = create_engine(url, connect_args={'check_same_thread': False} if url.startswith('sqlite') else {}, pool_pre_ping=True)
 Base.metadata.create_all(engine)
-app = FastAPI(title='FinSight AI',version='0.1.0',description='Local single-analyst MVP. No production authentication. Synthetic demo is explicitly labeled.')
+app = FastAPI(title='FinSight AI',version='0.1.1',description='Single-analyst research environment; private API access required on Render.',docs_url=None if os.getenv('RENDER') == 'true' else '/docs',redoc_url=None if os.getenv('RENDER') == 'true' else '/redoc',openapi_url=None if os.getenv('RENDER') == 'true' else '/openapi.json')
+
+@app.middleware('http')
+async def private_api(request: Request, call_next):
+    if not request.url.path.startswith('/api/') or request.url.path == '/api/health':
+        return await call_next(request)
+    expected = os.getenv('FINSIGHT_API_KEY', '')
+    # Never serve protected API operations without a key on Render.
+    if not expected and os.getenv('RENDER') != 'true':
+        return await call_next(request)  # Local developer quick-start only.
+    if len(expected) < 32:
+        return JSONResponse({'detail': 'Backend access is not configured'}, status_code=503)
+    supplied = request.headers.get('x-finsight-api-key', '')
+    if not supplied or not hmac.compare_digest(supplied, expected):
+        return JSONResponse({'detail': 'Unauthorized'}, status_code=401)
+    return await call_next(request)
+
 
 def now(): return datetime.now(timezone.utc).isoformat()
 def save(kind, data, id=None):
