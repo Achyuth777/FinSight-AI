@@ -1,4 +1,5 @@
 import "./globals.css";
+import "./obsidian.css";
 import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "FinSight AI — See the signal.",
