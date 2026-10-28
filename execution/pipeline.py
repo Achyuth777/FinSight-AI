@@ -47,12 +47,13 @@ def validate_csv(raw: bytes):
         raise ValueError('Provide 100–20,000 transactions for a chronological train/test split.')
     if frame[REQUIRED].isna().any().any():
         raise ValueError('Required columns contain missing values.')
-    if frame.transaction_id.duplicated().any():
-        raise ValueError('Duplicate transaction_id values. Import rejected atomically.')
     for c in ['transaction_id', 'account_id', 'device_id', 'merchant']:
         frame[c] = frame[c].astype(str).str.strip()
         if frame[c].eq('').any() or frame[c].str.len().gt(160).any():
             raise ValueError(f'{c}: values must contain 1–160 characters.')
+    # Check uniqueness after normalization so whitespace cannot hide duplicates.
+    if frame.transaction_id.duplicated().any():
+        raise ValueError('Duplicate transaction_id values. Import rejected atomically.')
     for c in ['amount', 'velocity_1h', 'account_age_days', 'distance_km']:
         frame[c] = pd.to_numeric(frame[c], errors='coerce')
         if not np.isfinite(frame[c]).all() or (frame[c] < 0).any() or (frame[c] > 1e12).any():
