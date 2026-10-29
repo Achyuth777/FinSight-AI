@@ -41,3 +41,10 @@ PostgreSQL connection support and Docker Compose configuration are provided, but
 7. Upload valid and invalid CSVs; confirm validation feedback and no partial imports.
 8. Test cited research links, graph keyboard navigation and chart tooltips.
 9. Run an automated accessibility scanner plus manual keyboard and screen-reader checks.
+
+
+## 2026-10-29 — Sign-in password visibility
+
+- Added an explicitly labeled show/hide password button, a 44px target, and visible keyboard focus. Passwords remain masked initially; autocomplete, required input, minimum length and authentication behavior are unchanged.
+- Production Next.js build and TypeScript checks passed. Started the production server and verified HTTP 200 for landing and login. Inspected rendered login HTML for masked input, native validation, accessible label/control association, and non-submit button type.
+- Browser screenshot and interactive keyboard/mobile verification could not run: no browser binary was installed, and Playwright's Chromium download repeatedly returned an invalid archive. No claim of visual or end-to-end verification is made for this change.

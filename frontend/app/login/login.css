@@ -4,3 +4,11 @@
 .login-brand{display:inline-flex;margin-bottom:45px}.login-emblem{display:inline-flex;padding:14px;color:#d5f78b;background:#2c3a2c;border:1px solid #476046;border-radius:12px;margin-bottom:18px}
 .login-eyebrow{color:#d5f78b;font-size:10px;letter-spacing:1.8px;font-weight:700;margin-bottom:10px}.login-card h1{font-size:32px;letter-spacing:-1.4px;margin-bottom:12px;font-weight:610}.login-card p{font-size:13px;color:#9caabb;line-height:1.75;margin-bottom:29px}
 .login-card form{display:flex;flex-direction:column;gap:12px}.login-card form label{font-size:12px;font-weight:600}.login-card form input{border:1px solid #43505e;background:#11171f;border-radius:8px;padding:14px 13px;color:#fff;outline:none}.login-card form input:focus{border-color:#d5f78b}.login-submit{display:flex;gap:12px;justify-content:center;align-items:center;border-radius:8px;background:#d5f78b;color:#14191e;font-weight:700;font-size:13px;margin-top:9px;min-height:48px}.login-submit:disabled{opacity:.65}.login-footer{display:flex;align-items:center;gap:7px;margin-top:30px;border-top:1px solid #333e4b;padding-top:20px;font-size:11px;color:#93a4ad}.login-footer svg{color:#d5f78b}.login-error{font-size:12px;color:#ffb3b3}.login-back{position:absolute;bottom:23px;color:#a8b7c2;font-size:12px}@media(max-width:520px){.login-card{padding:25px}.login-card h1{font-size:27px}}
+
+/* Keep the reveal action inside the field without covering entered text. */
+.login-password-field{position:relative;min-width:0}
+.login-card form .login-password-field input{width:100%;min-width:0;padding-right:56px}
+.login-password-toggle{position:absolute;right:3px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:6px;background:transparent;color:#a8b7c2;cursor:pointer}
+.login-password-toggle:hover{background:#25303c;color:#eef1f5}
+.login-password-toggle:focus-visible,.login-submit:focus-visible,.login-brand:focus-visible,.login-back:focus-visible{outline:2px solid #d5f78b;outline-offset:3px}
+.login-password-field:focus-within input{border-color:#d5f78b}
