@@ -1,4 +1,5 @@
 """Deterministic validation, generation and ML. No network calls or LLM decisions."""
+import csv
 import io
 import time
 import numpy as np
@@ -36,6 +37,15 @@ def demo_data(n=1200):
 def validate_csv(raw: bytes):
     if len(raw) > 5_000_000:
         raise ValueError('CSV exceeds 5 MB limit.')
+    try:
+        header = next(
+            row for row in csv.reader(io.StringIO(raw.decode('utf-8-sig')))
+            if row and not (len(row) == 1 and not row[0].strip())
+        )
+    except (UnicodeDecodeError, csv.Error, StopIteration) as e:
+        raise ValueError('Unable to parse UTF-8 CSV.') from e
+    if len(header) != len(set(header)):
+        raise ValueError('Duplicate CSV column names. Import rejected atomically.')
     try:
         frame = pd.read_csv(io.BytesIO(raw), dtype={'transaction_id': str, 'account_id': str, 'device_id': str})
     except Exception as e:
