@@ -52,3 +52,13 @@ def test_constant_feature_drift_is_not_reported_stable():
     r=train(f,trees=50)
     d=next(d for d in r['drift'] if d['feature']=='velocity_1h')
     assert d['psi'] is None and d['status']=='unavailable'
+
+def test_duplicate_csv_column_headers_are_rejected_before_dataframe_parsing():
+    csv_text = demo_data(120).to_csv(index=False)
+    lines = csv_text.splitlines()
+    headers = lines[0].split(',')
+    headers[headers.index('amount')] = 'transaction_id'
+    lines[0] = ','.join(headers)
+
+    with pytest.raises(ValueError, match='Duplicate CSV column names'):
+        validate_csv(('\n'.join(lines)).encode('utf-8'))
