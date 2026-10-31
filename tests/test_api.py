@@ -1,6 +1,6 @@
 import os
 import tempfile
-os.environ['DATABASE_URL']='sqlite:///'+tempfile.mktemp(suffix='.db')
+os.environ['DATABASE_URL']='sqlite:///'+os.path.join(tempfile.mkdtemp(),'test.db')
 from fastapi.testclient import TestClient
 from backend.main import app
 from execution.pipeline import demo_data

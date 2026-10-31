@@ -23,7 +23,6 @@ import {
   Sparkles,
   Upload,
   X,
-  SlidersHorizontal,
   Info,
   ScanLine,
 } from "lucide-react";
@@ -580,7 +579,7 @@ export default function Workspace({ section }: { section: string }) {
               </span>
             </div>
           )}
-          {!run && loaded && section !== "laboratory" && (
+          {!run && loaded && !error && section !== "laboratory" && (
             <div className="empty-state">
               <span className="empty-icon">
                 <ScanLine size={34} />
@@ -906,7 +905,7 @@ export default function Workspace({ section }: { section: string }) {
                         </div>
                       </li>
                       {activeCase.events.map((e, i) => (
-                        <li key={i}>
+                        <li key={`${e.at}-${i}`}>
                           <span />
                           <div>
                             <small>
@@ -988,7 +987,7 @@ export default function Workspace({ section }: { section: string }) {
                   <svg
                     viewBox="0 0 700 440"
                     aria-label={`Account ${activeEntity} shares ${devices.length} devices with ${neighbors.length} accounts`}
-                    role="img"
+                    role="group"
                   >
                     <defs>
                       <pattern

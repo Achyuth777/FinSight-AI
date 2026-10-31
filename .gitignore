@@ -1,5 +1,10 @@
 .env
+.env.*
+!.env.example
+credentials.json
+token.json
 .venv/
+frontend/next-env.d.ts
 node_modules/
 .next/
 __pycache__/

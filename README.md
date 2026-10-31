@@ -95,6 +95,7 @@ SQLAlchemy stores datasets, immutable result snapshots and mutable cases with ev
 ## Verification
 
 ```bash
+pip install -r requirements-dev.txt
 python -m pytest tests -q
 npm run build --prefix frontend
 ```
