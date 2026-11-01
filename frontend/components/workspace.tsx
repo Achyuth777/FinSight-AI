@@ -58,6 +58,8 @@ const titles: Record<string, [string, string]> = {
   monitoring: ["Data checks", "Training versus held-out feature drift, data quality and run timing."],
   assistant: ["Evidence search", "Deterministic cited search over this run's transactions."],
 };
+const statusClass = (s: string) =>
+  s === "escalated" ? "amber" : s === "cleared" ? "" : "case";
 export default function Workspace({ section }: { section: string }) {
   const [run, setRun] = useState<Run | null>(null),
     [datasets, setDatasets] = useState<Dataset[]>([]),
@@ -434,7 +436,7 @@ export default function Workspace({ section }: { section: string }) {
               {busy}…
             </div>
           )}
-          {error && (
+          {error && !(section === "investigations" && activeCase) && (
             <div className="notice error" role="alert">
               {error}
               <Button
@@ -446,7 +448,7 @@ export default function Workspace({ section }: { section: string }) {
               </Button>
             </div>
           )}
-          {notice && (
+          {notice && !(section === "investigations" && activeCase) && (
             <div className="notice success" role="status">
               <Check size={17} />
               {notice}
@@ -498,7 +500,7 @@ export default function Workspace({ section }: { section: string }) {
               </div>
             );
           })()}
-          {!run && loaded && !error && section !== "laboratory" && (
+          {!run && loaded && !error && section !== "laboratory" && !(section === "investigations" && cases.length > 0) && (
             datasets.length ? (
               <div className="empty-state">
                 <span className="empty-icon">
@@ -755,7 +757,7 @@ export default function Workspace({ section }: { section: string }) {
               </div>
             </Panel>
           )}
-          {run && section === "investigations" && (
+          {(run || cases.length > 0) && section === "investigations" && (
             <div className="case-grid">
               <Panel
                 title="Case queue"
@@ -775,7 +777,10 @@ export default function Workspace({ section }: { section: string }) {
               >
                 {cases
                   .filter(
-                    (c) => caseStatus === "all" || c.status === caseStatus,
+                    (c) =>
+                      caseStatus === "all" ||
+                      c.status === caseStatus ||
+                      c.id === activeCase?.id,
                   )
                   .map((c) => (
                     <button
@@ -791,21 +796,35 @@ export default function Workspace({ section }: { section: string }) {
                     >
                       <span>
                         {c.transaction_id}
-                        <span className="pill">{c.status}</span>
+                        <span className={"pill " + statusClass(c.status)}>{c.status}</span>
                       </span>
                       <small>
                         {c.transaction.account_id} ·{" "}
                         {money(c.transaction.amount)}
                       </small>
                       <small>
-                        {c.source} · {c.created_at.slice(0, 10)}
+                        {c.source} · opened {utc(c.created_at)}
                       </small>
                     </button>
                   ))}
+                {cases.length > 0 &&
+                  caseStatus !== "all" &&
+                  !cases.some((c) => c.status === caseStatus) && (
+                    <div className="empty-small">
+                      No investigations with status “{caseStatus}”.
+                      <button
+                        type="button"
+                        className="text-link"
+                        onClick={() => setCaseStatus("all")}
+                      >
+                        Show all statuses
+                      </button>
+                    </div>
+                  )}
                 {!cases.length && (
                   <div className="empty-small">
-                    No cases yet. Open a transaction and choose “Create
-                    investigation”.
+                    No investigations yet. Open a transaction and choose
+                    “Create investigation”.
                     <Link href="/app/transactions" className="text-link">
                       Explore transactions <ArrowRight size={15} />
                     </Link>
@@ -816,6 +835,11 @@ export default function Workspace({ section }: { section: string }) {
                 <Panel
                   title={activeCase.transaction_id}
                   subtitle={`Evidence snapshot · ${activeCase.transaction.account_id} · ${activeCase.source}`}
+                  action={
+                    <span className={"pill " + statusClass(activeCase.status)}>
+                      Status: {activeCase.status}
+                    </span>
+                  }
                 >
                   <div className="case-content">
                     <div className="case-summary">
@@ -828,7 +852,7 @@ export default function Workspace({ section }: { section: string }) {
                       <li>
                         <span />
                         <div>
-                          <small>{activeCase.transaction.timestamp}</small>
+                          <small>{utc(activeCase.transaction.timestamp)}</small>
                           <p>
                             Transaction recorded. Raw anomaly score{" "}
                             {activeCase.transaction.anomaly_score}; percentile{" "}
@@ -859,12 +883,24 @@ export default function Workspace({ section }: { section: string }) {
                       value={note}
                       onChange={(e) => setNote(e.target.value)}
                     />
-                    <Button
-                      disabled={!note.trim() || !!busy}
-                      onClick={() => updateCase(activeCase)}
-                    >
-                      Save note <Plus size={15} />
-                    </Button>
+                    <div className="save-row">
+                      <Button
+                        disabled={!note.trim() || !!busy}
+                        onClick={() => updateCase(activeCase)}
+                      >
+                        Save note <Plus size={15} />
+                      </Button>
+                      {notice && (
+                        <span className="saved" role="status">
+                          <Check size={15} /> {notice}
+                        </span>
+                      )}
+                    </div>
+                    {error && (
+                      <div className="notice error" role="alert">
+                        {error} Your note is still in the box.
+                      </div>
+                    )}
                     <div className="decision-row">
                       <label htmlFor="decision">Investigation decision</label>
                       <select

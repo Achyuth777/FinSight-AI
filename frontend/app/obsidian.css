@@ -165,3 +165,8 @@ th.r,td.r{text-align:right}
 .drawer-actions .button{width:auto;margin:0;flex:1 1 180px}
 .table-scroll{position:relative}  /* contain absolutely positioned sr-only cells so they cannot widen the page */
 td small{color:var(--muted)}
+
+/* Step 2: investigations - save feedback beside the control */
+.save-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}
+.saved{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--accent)}
+.case-item .pill{margin-left:8px}

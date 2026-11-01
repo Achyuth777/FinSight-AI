@@ -117,11 +117,38 @@ async function journeyCheck(browser) {
   await context.close();
 }
 
+// J3: status in the header, selection survives a filter, a failed save keeps the note.
+async function investigationChecks(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(base + "/app/investigations", { waitUntil: "networkidle" });
+    await page.locator("#decision").waitFor();
+    const status = await page.locator("#decision").inputValue();
+    const header = await page.getByText("Status: " + status).count();
+    record("investigations: status shown in the case header", header > 0, "status " + status);
+    const other = ["open", "reviewing", "cleared", "escalated"].find((s) => s !== status);
+    await page.getByLabel("Case status filter").selectOption(other);
+    record("investigations: selected case stays listed under a non-matching filter", (await page.locator(".case-item.selected").count()) === 1);
+    await page.getByLabel("Case status filter").selectOption("all");
+    const draft = "draft kept " + Date.now();
+    await page.locator("#note").fill(draft);
+    await page.route("**/api/cases/**", (r) => (r.request().method() === "PATCH" ? r.abort() : r.continue()));
+    await page.getByRole("button", { name: /save note/i }).click();
+    await page.getByRole("alert").first().waitFor();
+    record("investigations: failed save keeps the typed note and shows the error", (await page.locator("#note").inputValue()) === draft);
+  } catch (e) {
+    record("investigations: J3 checks", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
+  await context.close();
+}
+
 const browser = await launch();
 await ensureRun((await browser.newContext()).request);
 if (!only || only === "overflow") await overflowChecks(browser);
 if (!only || only === "drawer") await drawerChecks(browser);
 if (!only || only === "journey") await journeyCheck(browser);
+if (!only || only === "journey" || only === "investigations") await investigationChecks(browser);
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);
