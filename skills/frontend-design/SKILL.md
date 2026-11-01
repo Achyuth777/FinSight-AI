@@ -9,7 +9,7 @@ Build an evidence-first financial investigation product. Read the affected page 
 
 ## Design tokens
 
-Use `frontend/app/globals.css` as the source of truth. Canvas #171e1a, panels #202823, borders #354037, primary text #edf1e9, secondary text #a6b3a8, action lime #d7f692, comparison cyan #9bd7cc, secondary category lavender #b8b5e6. Keep lime concentrated in primary actions, selection, and key signals. Never imply that green means confirmed fraud.
+Use `frontend/app/globals.css` as the source of truth (Obsidian theme). Canvas #0b0e13, panels #161b22, raised #1c222b, borders #2b333e, primary text #f1f3f7, secondary text #a0aaba, action lime #d5f78b (ink #11161d), comparison cyan #94c8dc, secondary category lavender #beb7f6, caution amber #e2b659. Keep lime concentrated in primary actions, selection, and key signals. Never imply that green means confirmed fraud.
 
 Use a legible sans serif, restrained medium weight, 40–66px marketing hero text and 27–32px workspace headings. Favor 12–14px working text; reserve smaller sizes for secondary metadata. Use tabular numerals for currency, scores and counts. Set cards to 10–12px radius, one-pixel borders and 16–24px padding. Avoid glows, decorative gradients, emoji and fabricated customer logos.
 

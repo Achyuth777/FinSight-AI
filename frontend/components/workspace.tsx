@@ -27,6 +27,8 @@ import {
   ScanLine,
 } from "lucide-react";
 import { Brand } from "./brand";
+import { money, label, featureLabel, pct, utc } from "./workspace/format";
+import { Score, Panel, MetricCards, Unavailable } from "./workspace/primitives";
 import { Button } from "./ui/button";
 import { ActivityChart, RiskChart } from "./charts";
 import {
@@ -38,121 +40,24 @@ import {
   type Metrics,
 } from "./types";
 const nav = [
-  ["overview", "Overview", LayoutDashboard],
-  ["transactions", "Transactions", ArrowRight],
-  ["investigations", "Investigations", FileSearch],
-  ["network", "Entity network", Network],
-  ["laboratory", "ML laboratory", Beaker],
-  ["monitoring", "Monitoring", Activity],
-  ["assistant", "Research assistant", Sparkles],
+  ["overview", "Overview", LayoutDashboard, "Work"],
+  ["transactions", "Transactions", ArrowRight, "Work"],
+  ["investigations", "Investigations", FileSearch, "Work"],
+  ["network", "Linked accounts", Network, "Explore"],
+  ["assistant", "Evidence search", Search, "Explore"],
+  ["laboratory", "Experiments", Beaker, "Model"],
+  ["monitoring", "Data checks", Activity, "Model"],
 ] as const;
+const groups = ["Work", "Explore", "Model"] as const;
 const titles: Record<string, [string, string]> = {
-  overview: [
-    "A clearer view of risk.",
-    "Explore the signals. Understand the context. Decide what happens next.",
-  ],
-  transactions: [
-    "Transaction intelligence",
-    "Find unusual behavior and inspect the evidence behind every score.",
-  ],
-  investigations: [
-    "Investigation center",
-    "An accountable workspace for evidence, observations, and decisions.",
-  ],
-  network: [
-    "Follow the connections.",
-    "Explore account relationships through shared device identifiers.",
-  ],
-  laboratory: [
-    "The ML laboratory",
-    "Reproducible experiments. Transparent evaluation. No invented metrics.",
-  ],
-  monitoring: [
-    "Know when patterns shift.",
-    "Compare training and held-out features, data quality, and run timing.",
-  ],
-  assistant: [
-    "Evidence, within reach.",
-    "Search transaction evidence and follow every answer back to its source.",
-  ],
+  overview: ["Overview", "What the latest analysis flagged, and what to review first."],
+  transactions: ["Transactions", "Search, filter and inspect the evidence behind each anomaly percentile."],
+  investigations: ["Investigations", "Notes, status and decisions on transactions you chose to review."],
+  network: ["Linked accounts", "Accounts that share a device identifier in this dataset."],
+  laboratory: ["Experiments", "Train Isolation Forest, compare runs and read held-out metrics with their sample sizes."],
+  monitoring: ["Data checks", "Training versus held-out feature drift, data quality and run timing."],
+  assistant: ["Evidence search", "Deterministic cited search over this run's transactions."],
 };
-const money = (n: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(n);
-const label = (s: string) => s.replaceAll("_", " ");
-const featureLabel = (s: string) =>
-  ["amount", "account_age_days", "distance_km"].includes(s)
-    ? "log1p " + label(s)
-    : s === "hour"
-      ? "UTC hour"
-      : label(s);
-const pct = (n?: number) => (n == null ? "—" : (n * 100).toFixed(1) + "%");
-function Score({ tx }: { tx: Tx }) {
-  return (
-    <span
-      className={
-        "score " +
-        (tx.risk_score >= 95 ? "high" : tx.risk_score >= 80 ? "medium" : "low")
-      }
-    >
-      <i />
-      {tx.risk_score.toFixed(1)}
-    </span>
-  );
-}
-function Panel({
-  title,
-  subtitle,
-  children,
-  action,
-  className = "",
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={"panel " + className}>
-      <div className="panel-head">
-        <div>
-          <h2>{title}</h2>
-          {subtitle && <p>{subtitle}</p>}
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-function MetricCards({ metrics }: { metrics: Metrics }) {
-  return !metrics.available ? (
-    <div className="notice">
-      <Info size={18} />
-      {metrics.reason}
-    </div>
-  ) : (
-    <div className="metric-grid compact">
-      {[
-        ["ROC-AUC", metrics.roc_auc],
-        ["Average precision", metrics.average_precision],
-        ["Precision", metrics.precision],
-        ["Recall", metrics.recall],
-      ].map(([name, value]) => (
-        <div className="metric" key={String(name)}>
-          <span>{name}</span>
-          <strong>{pct(value as number)}</strong>
-          <small>Held-out transactions</small>
-        </div>
-      ))}
-    </div>
-  );
-}
 export default function Workspace({ section }: { section: string }) {
   const [run, setRun] = useState<Run | null>(null),
     [datasets, setDatasets] = useState<Dataset[]>([]),
@@ -243,7 +148,7 @@ export default function Workspace({ section }: { section: string }) {
       localStorage.setItem("finsight-run", r.id);
       setRuns(await api<Run[]>("/runs"));
       setNotice(
-        "Experiment complete. Review held-out metrics in the laboratory.",
+        "Experiment complete. Review held-out metrics in Experiments.",
       );
     });
   }
@@ -277,7 +182,7 @@ export default function Workspace({ section }: { section: string }) {
       setDatasets(await api<Dataset[]>("/datasets"));
       setDataset(d.id);
       setNotice(
-        "CSV validated and saved. Train a model in ML laboratory to score this dataset.",
+        "CSV validated and saved. Analyze it with default settings, or tune it in Experiments.",
       );
     });
   }
@@ -426,52 +331,36 @@ export default function Workspace({ section }: { section: string }) {
         <Link className="sidebar-brand" href="/" aria-label="FinSight home">
           <Brand />
         </Link>
-        <div className="workspace-switch">
-          <span className="workspace-avatar">F</span>
-          <div>
-            FinSight workspace<small>Private analyst workspace</small>
-          </div>
-          <ShieldCheck size={15} />
-        </div>
-        <span className="nav-label">INTELLIGENCE</span>
         <nav aria-label="Workspace">
-          {nav.map(([path, title, Icon], i) => (
-            <Link
-              key={path}
-              className={
-                (section === path ? "active " : "") +
-                (i === 4 ? "nav-divider" : "")
-              }
-              href={"/app/" + path}
-              onClick={() => setMobile(false)}
-              aria-current={section === path ? "page" : undefined}
-            >
-              <Icon size={18} />
-              {title}
-              {path === "investigations" && cases.length > 0 && (
-                <span className="nav-count">{cases.length}</span>
-              )}
-            </Link>
+          {groups.map((g) => (
+            <div className="nav-group" key={g} role="group" aria-label={g}>
+              <span className="nav-label">{g}</span>
+              {nav
+                .filter((n) => n[3] === g)
+                .map(([path, title, Icon]) => (
+                  <Link
+                    key={path}
+                    className={section === path ? "active" : ""}
+                    href={"/app/" + path}
+                    onClick={() => setMobile(false)}
+                    aria-current={section === path ? "page" : undefined}
+                  >
+                    <Icon size={18} />
+                    {title}
+                    {path === "investigations" && cases.length > 0 && (
+                      <span className="nav-count">{cases.length}</span>
+                    )}
+                  </Link>
+                ))}
+            </div>
           ))}
         </nav>
         <div className="sidebar-bottom">
-          <div className="sandbox-card">
-            <span className="status-dot" /> Learning environment
-            <p>
-              No payment actions.
-              <br />
-              Every decision stays with you.
-            </p>
-            <Link href="/#methodology">
-              Explore the methodology <ArrowUpRight size={13} />
-            </Link>
-          </div>
-          <div className="analyst">
-            <span>AP</span>
-            <div>
-              Analyst workspace<small>Single-analyst MVP</small>
-            </div>
-          </div>
+          <p className="sidebar-note">
+            Single analyst · batch analysis
+            <br />
+            No payment actions
+          </p>
           <button type="button" className="logout-control" onClick={async () => { await fetch("/api/auth/logout", { method: "POST" }); window.location.assign("/"); }}><LogOut size={15}/> Sign out</button>
         </div>
       </aside>
@@ -491,7 +380,6 @@ export default function Workspace({ section }: { section: string }) {
           </div>
           <div className="topbar-right">
             <span className="environment">
-              <span className="status-dot" />
               {run?.source === "uploaded"
                 ? "Uploaded dataset"
                 : "Synthetic sandbox"}
@@ -508,16 +396,10 @@ export default function Workspace({ section }: { section: string }) {
         <main tabIndex={-1} id="workspace-main" className="workspace-main">
           <div className="page-heading">
             <div>
-              <span className="eyebrow">
-                FINSIGHT INTELLIGENCE /{" "}
-                {String(nav.findIndex((n) => n[0] === section) + 1).padStart(
-                  2,
-                  "0",
-                )}
-              </span>
               <h1>{titles[section][0]}</h1>
               <p>{titles[section][1]}</p>
             </div>
+            {(section === "overview" || section === "transactions") && (
             <div className="heading-actions">
               <label className={"button outline " + (busy ? "disabled" : "")}>
                 <Upload size={16} /> Import CSV
@@ -533,12 +415,13 @@ export default function Workspace({ section }: { section: string }) {
                   }}
                 />
               </label>
-              {!run && (
+              {!run && !datasets.length && (
                 <Button onClick={demo} disabled={!!busy}>
                   Load demo <ArrowRight size={16} />
                 </Button>
               )}
             </div>
+            )}
           </div>
           {busy && (
             <div className="notice" role="status">
@@ -564,45 +447,89 @@ export default function Workspace({ section }: { section: string }) {
               {notice}
             </div>
           )}
-          {run && (
-            <div className="dataset-strip">
-              <span>
-                <Database size={14} />
-                {run.dataset_name}
-                <b>{run.source === "synthetic" ? "SYNTHETIC" : "UPLOADED"}</b>
-              </span>
-              <span>
-                {rows.length.toLocaleString()} rows · INR ·{" "}
-                {run.created_at.slice(0, 10)}
-                <span className="strip-divider">/</span>Anomaly scores are not
-                fraud probabilities <Info size={13} />
-              </span>
-            </div>
-          )}
+          {run && (() => {
+            const stamps = rows.map((t) => t.timestamp).sort();
+            return (
+              <div className="context-bar" role="group" aria-label="Analysis context">
+                <div className="context-main">
+                  <span className="context-name">
+                    <Database size={14} />
+                    {run.dataset_name}
+                    <b>{run.source === "synthetic" ? "SYNTHETIC SAMPLE" : "UPLOADED"}</b>
+                  </span>
+                  <dl>
+                    <div>
+                      <dt>Data period (UTC)</dt>
+                      <dd>
+                        {stamps.length ? (
+                          stamps[0].slice(0, 10) + " to " + stamps[stamps.length - 1].slice(0, 10)
+                        ) : (
+                          <Unavailable reason="no rows" />
+                        )}
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Rows · currency</dt>
+                      <dd>{rows.length.toLocaleString()} · INR</dd>
+                    </div>
+                    <div>
+                      <dt>Analysed</dt>
+                      <dd>{utc(run.created_at)}</dd>
+                    </div>
+                    <div>
+                      <dt>Run · model</dt>
+                      <dd>
+                        {run.id.slice(0, 8)} · Isolation Forest, {run.trees} trees
+                      </dd>
+                    </div>
+                  </dl>
+                  <Link className="text-link" href="/app/laboratory#runs">
+                    Change run
+                  </Link>
+                </div>
+                <p className="context-note">
+                  Batch analysis, not streaming. Scores are anomaly percentiles, not fraud probabilities. No payments are made.
+                </p>
+              </div>
+            );
+          })()}
           {!run && loaded && !error && section !== "laboratory" && (
-            <div className="empty-state">
-              <span className="empty-icon">
-                <ScanLine size={34} />
-              </span>
-              <span className="eyebrow">YOUR WORKSPACE IS READY</span>
-              <h2>Start with a real experiment.</h2>
-              <p>
-                Load 1,200 reproducible synthetic transactions and train
-                Isolation Forest.
-                <br />
-                Or import a CSV, then open the ML laboratory to train your
-                model.
-              </p>
-              <Button onClick={demo} disabled={!!busy}>
-                Load & analyze demo <ArrowRight size={17} />
-              </Button>
-              <a href="/api/template" className="text-link">
-                Download example CSV <ArrowDownToLine size={15} />
-              </a>
-              <Link href="/app/laboratory" className="text-link">
-                Open ML laboratory <ArrowRight size={15} />
-              </Link>
-            </div>
+            datasets.length ? (
+              <div className="empty-state">
+                <span className="empty-icon">
+                  <ScanLine size={34} />
+                </span>
+                <h2>Dataset saved, not analysed yet</h2>
+                <p>
+                  {datasets.find((d) => d.id === dataset)?.name ?? datasets[0].name}{" "}
+                  has no analysis run. Analyze it with default settings
+                  (7% contamination, 150 trees), or tune them in Experiments.
+                </p>
+                <Button onClick={() => experiment()} disabled={!!busy}>
+                  Analyze with defaults <ArrowRight size={17} />
+                </Button>
+                <Link href="/app/laboratory" className="text-link">
+                  Tune in Experiments <ArrowRight size={15} />
+                </Link>
+              </div>
+            ) : (
+              <div className="empty-state">
+                <span className="empty-icon">
+                  <ScanLine size={34} />
+                </span>
+                <h2>No data yet</h2>
+                <p>
+                  Load the 1,200-row synthetic sample (not production data) and
+                  train Isolation Forest, or import your own CSV.
+                </p>
+                <Button onClick={demo} disabled={!!busy}>
+                  Load synthetic sample <ArrowRight size={17} />
+                </Button>
+                <a href="/api/template" className="text-link">
+                  Download example CSV <ArrowDownToLine size={15} />
+                </a>
+              </div>
+            )
           )}
           {run && section === "overview" && (
             <>
@@ -614,7 +541,7 @@ export default function Workspace({ section }: { section: string }) {
                   <strong>{rows.length.toLocaleString()}</strong>
                   <small>
                     Across {new Set(rows.map((t) => t.account_id)).size}{" "}
-                    connected accounts
+                    distinct accounts
                   </small>
                 </div>
                 <div className="metric">
@@ -996,7 +923,7 @@ export default function Workspace({ section }: { section: string }) {
                         height="24"
                         patternUnits="userSpaceOnUse"
                       >
-                        <circle cx="1" cy="1" r="1" fill="#3c4940" />
+                        <circle cx="1" cy="1" r="1" fill="var(--line-strong)" />
                       </pattern>
                     </defs>
                     <rect width="700" height="440" fill="url(#network-grid)" />
@@ -1009,7 +936,7 @@ export default function Workspace({ section }: { section: string }) {
                             y1="220"
                             x2="350"
                             y2={y}
-                            stroke="#768b6a"
+                            stroke="var(--cyan)"
                           />
                           {neighbors
                             .slice(0, 10)
@@ -1031,7 +958,7 @@ export default function Workspace({ section }: { section: string }) {
                                     (j * 350) /
                                       Math.max(1, neighbors.length - 1)
                                   }
-                                  stroke="#465b4b"
+                                  stroke="var(--line-strong)"
                                 />
                               );
                             })}
@@ -1041,14 +968,14 @@ export default function Workspace({ section }: { section: string }) {
                             width="44"
                             height="44"
                             rx="10"
-                            fill="#2c4036"
-                            stroke="#8ab8aa"
+                            fill="var(--surface-3)"
+                            stroke="var(--cyan)"
                           />
                           <text
                             x="350"
                             y={y + 42}
                             textAnchor="middle"
-                            fill="#c6d6cc"
+                            fill="var(--muted)"
                             fontSize="12"
                           >
                             {d}
@@ -1056,12 +983,12 @@ export default function Workspace({ section }: { section: string }) {
                         </g>
                       );
                     })}
-                    <circle cx="175" cy="220" r="42" fill="#d7f692" />
+                    <circle cx="175" cy="220" r="42" fill="var(--accent)" />
                     <text
                       x="175"
                       y="225"
                       textAnchor="middle"
-                      fill="#18231b"
+                      fill="var(--accent-ink)"
                       fontSize="13"
                       fontWeight="600"
                     >
@@ -1088,13 +1015,13 @@ export default function Workspace({ section }: { section: string }) {
                             45 + (i * 350) / Math.max(1, neighbors.length - 1)
                           }
                           r="25"
-                          fill="#343d35"
-                          stroke="#b1b1df"
+                          fill="var(--surface-3)"
+                          stroke="var(--purple)"
                         />
                         <text
                           x="600"
                           y={50 + (i * 350) / Math.max(1, neighbors.length - 1)}
-                          fill="#d9e1d8"
+                          fill="var(--text)"
                           fontSize="12"
                         >
                           {a}
@@ -1126,7 +1053,7 @@ export default function Workspace({ section }: { section: string }) {
                   <strong>{entityRows.length}</strong>
                   <span>transactions in this dataset</span>
                   <div>{devices.length} shared device identifiers</div>
-                  <div>{neighbors.length} connected accounts</div>
+                  <div>{neighbors.length} distinct accounts</div>
                   <p className="muted">
                     Select a linked account on the graph or use the account
                     selector. Graph display is capped at 8 devices and 10

@@ -13,10 +13,10 @@ import {
 } from "recharts";
 import type { Tx } from "./types";
 const tip = {
-  background: "#252d29",
-  border: "1px solid #445048",
+  background: "var(--surface-3)",
+  border: "1px solid var(--line-strong)",
   borderRadius: 8,
-  color: "#eff4ed",
+  color: "var(--text)",
 };
 export function ActivityChart({ rows }: { rows: Tx[] }) {
   const groups: Record<
@@ -43,20 +43,20 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
         >
           <defs>
             <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#d7f692" stopOpacity={0.18} />
-              <stop offset="100%" stopColor="#d7f692" stopOpacity={0} />
+              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.18} />
+              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid stroke="#333e36" vertical={false} />
+          <CartesianGrid stroke="var(--line)" vertical={false} />
           <XAxis
             dataKey="date"
-            stroke="#9aa89d"
+            stroke="var(--muted)"
             tickLine={false}
             axisLine={false}
             fontSize={11}
           />
           <YAxis
-            stroke="#9aa89d"
+            stroke="var(--muted)"
             tickLine={false}
             axisLine={false}
             fontSize={11}
@@ -65,7 +65,7 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
           <Area
             type="monotone"
             dataKey="transactions"
-            stroke="#d7f692"
+            stroke="var(--accent)"
             fill="url(#area)"
             strokeWidth={2}
             isAnimationActive={false}
@@ -73,7 +73,7 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
           <Area
             type="monotone"
             dataKey="flagged"
-            stroke="#9cd9d0"
+            stroke="var(--cyan)"
             fill="transparent"
             strokeWidth={2}
             isAnimationActive={false}
@@ -95,7 +95,7 @@ export function RiskChart({ rows }: { rows: Tx[] }) {
       value: rows.filter((t) => t.risk_score >= 95).length,
     },
   ];
-  const colors = ["#688c74", "#b1b1df", "#d7f692"];
+  const colors = ["var(--muted)", "var(--purple)", "var(--accent)"];
   return (
     <>
       <div
