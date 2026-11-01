@@ -65,6 +65,12 @@ export type Case = {
   created_at: string;
   events: { at: string; type: string; text: string }[];
 };
+// Carries the HTTP status so callers can tell an ended session (401) from other failures.
+export class ApiError extends Error {
+  constructor(message: string, public status: number) {
+    super(message);
+  }
+}
 export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   const r = await fetch("/api" + path, {
     ...options,
@@ -75,8 +81,9 @@ export async function api<T>(path: string, options?: RequestInit): Promise<T> {
   });
   if (!r.ok) {
     const b = await r.json().catch(() => ({ detail: "Backend unavailable" }));
-    throw new Error(
+    throw new ApiError(
       typeof b.detail === "string" ? b.detail : JSON.stringify(b.detail),
+      r.status,
     );
   }
   return r.json();

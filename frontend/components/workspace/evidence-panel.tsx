@@ -93,7 +93,7 @@ export function EvidencePanel({
         {kase ? (
           <>
             <StatusTag kind="case">In investigation: {kase.status}</StatusTag>
-            <Link href="/app/investigations" className="button primary" onClick={() => onOpenCase(kase.id)}>
+            <Link href={"/app/investigations?case=" + encodeURIComponent(kase.id)} className="button primary" onClick={() => onOpenCase(kase.id)}>
               Open investigation <ArrowRight size={16} />
             </Link>
           </>

@@ -1,6 +1,7 @@
 import { Info } from "lucide-react";
 import type { Tx, Metrics } from "../types";
 import { pct } from "./format";
+import { Stat } from "../ui/stat";
 
 // Percentile ruler: a 0-100 track, one tick at the lowest flagged percentile, one fill to this row's percentile.
 // It ranks the row against training scores; it is not a probability.
@@ -81,18 +82,14 @@ export function MetricCards({ metrics, source }: { metrics: Metrics; source: str
         </div>
       ) : (
         <>
-          <div className="metric-grid compact">
+          <div className="stat-grid">
             {[
               ["ROC-AUC", metrics.roc_auc],
               ["Average precision", metrics.average_precision],
               ["Precision", metrics.precision],
               ["Recall", metrics.recall],
             ].map(([name, value]) => (
-              <div className="metric" key={String(name)}>
-                <span>{name}</span>
-                <strong>{pct(value as number)}</strong>
-                <small>Held-out transactions</small>
-              </div>
+              <Stat key={String(name)} label={String(name)} value={pct(value as number)} note="Held-out transactions" />
             ))}
           </div>
           {n != null && positives != null && (

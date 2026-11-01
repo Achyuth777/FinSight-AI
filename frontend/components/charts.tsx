@@ -41,12 +41,6 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
           data={data}
           margin={{ top: 15, right: 10, left: -25, bottom: 0 }}
         >
-          <defs>
-            <linearGradient id="area" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.18} />
-              <stop offset="100%" stopColor="var(--accent)" stopOpacity={0} />
-            </linearGradient>
-          </defs>
           <CartesianGrid stroke="var(--line)" vertical={false} />
           <XAxis
             dataKey="date"
@@ -65,15 +59,15 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
           <Area
             type="monotone"
             dataKey="transactions"
-            stroke="var(--accent)"
-            fill="url(#area)"
-            strokeWidth={2}
+            stroke="var(--muted)"
+            fill="transparent"
+            strokeWidth={1.5}
             isAnimationActive={false}
           />
           <Area
             type="monotone"
             dataKey="flagged"
-            stroke="var(--cyan)"
+            stroke="var(--accent)"
             fill="transparent"
             strokeWidth={2}
             isAnimationActive={false}
@@ -81,62 +75,5 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
         </AreaChart>
       </ResponsiveContainer>
     </div>
-  );
-}
-export function RiskChart({ rows }: { rows: Tx[] }) {
-  const data = [
-    { name: "Below 80th", value: rows.filter((t) => t.risk_score < 80).length },
-    {
-      name: "80th–95th",
-      value: rows.filter((t) => t.risk_score >= 80 && t.risk_score < 95).length,
-    },
-    {
-      name: "95th and above",
-      value: rows.filter((t) => t.risk_score >= 95).length,
-    },
-  ];
-  const colors = ["var(--muted)", "var(--purple)", "var(--accent)"];
-  return (
-    <>
-      <div
-        className="donut"
-        role="img"
-        aria-label={data.map((d) => `${d.name}: ${d.value}`).join(", ")}
-      >
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              dataKey="value"
-              innerRadius="65%"
-              outerRadius="88%"
-              paddingAngle={4}
-              stroke="none"
-              isAnimationActive={false}
-            >
-              {data.map((d, i) => (
-                <Cell key={d.name} fill={colors[i]} />
-              ))}
-            </Pie>
-            <Tooltip contentStyle={tip} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="donut-label">
-          <strong>{rows.length.toLocaleString()}</strong>
-          <span>transactions</span>
-        </div>
-      </div>
-      <div className="legend-list">
-        {data.map((d, i) => (
-          <div key={d.name}>
-            <span>
-              <i style={{ background: colors[i] }} />
-              {d.name}
-            </span>
-            <b>{d.value}</b>
-          </div>
-        ))}
-      </div>
-    </>
   );
 }

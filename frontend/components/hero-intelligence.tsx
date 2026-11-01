@@ -14,8 +14,8 @@ export function HeroIntelligence() {
   return (
     <div className="intel-preview" aria-label="Illustrative FinSight intelligence workspace preview">
       <div className="intel-preview-header">
-        <div className="intel-preview-title"><span className="preview-product-icon"><Radar size={16} /></span><span>Intelligence overview</span><span className="preview-product-caption">/ DEMO</span></div>
-        <div className="preview-status"><i /> SYSTEM PREVIEW</div>
+        <div className="intel-preview-title"><span className="preview-product-icon"><Radar size={16} /></span><span>Overview</span><span className="preview-product-caption">/ DEMO</span></div>
+        <div className="preview-status">ILLUSTRATIVE PREVIEW</div>
       </div>
       <div className="intel-preview-body">
         <div className="preview-heading">
@@ -28,7 +28,7 @@ export function HeroIntelligence() {
         </div>
         <div className="preview-graph">
           <div className="graph-grid" aria-hidden="true" />
-          <div className="graph-corner graph-corner-top">ENTITY RELATIONSHIPS <span>·</span> LIVE VIEW CONCEPT</div>
+          <div className="graph-corner graph-corner-top">ENTITY RELATIONSHIPS <span>·</span> ILLUSTRATIVE</div>
           <svg viewBox="0 0 600 288" role="img" aria-label="Diagram of an account connected to transactions, a device, and other accounts">
             <defs>
               <linearGradient id="edge-highlight" x1="0" x2="1"><stop stopColor="#a8d5cb"/><stop offset="1" stopColor="#d5f78b"/></linearGradient>

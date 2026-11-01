@@ -43,7 +43,7 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             <span className="eyebrow">
-              <span className="status-dot" /> A NEW STANDARD FOR FINANCIAL INTELLIGENCE
+              SINGLE-ANALYST TRANSACTION REVIEW
             </span>
             <h1>
               See the pattern.
@@ -53,7 +53,7 @@ export default function Home() {
               <span>Decide with clarity.</span>
             </h1>
             <p>
-              From unusual transactions to explainable decisions.
+              From unusual transactions to recorded decisions.
               <br className="desktop-break" /> Real models, connected evidence, and the human judgment that matters.
             </p>
             <div className="hero-actions">
@@ -75,7 +75,7 @@ export default function Home() {
         <div className="principle-strip">
           <span>Built for understanding.</span>
           <span>
-            <ScanLine size={18} /> Explainable signals
+            <ScanLine size={18} /> Cited evidence
           </span>
           <span>
             <Network size={18} /> Connected evidence
@@ -152,7 +152,7 @@ export default function Home() {
             </p>
             <Button asChild variant="outline">
               <Link href="/app/laboratory">
-                Inside the ML laboratory <ArrowUpRight size={16} />
+                Inside Experiments <ArrowUpRight size={16} />
               </Link>
             </Button>
           </div>
@@ -282,7 +282,7 @@ export default function Home() {
       </main>
       <footer>
         <Brand />
-        <span>A learning platform for serious ML engineering.</span>
+        <span>Batch transaction review. No payments are made or blocked.</span>
         <span>LOCAL MVP / v0.1</span>
       </footer>
     </div>

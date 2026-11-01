@@ -93,6 +93,7 @@ async function journeyCheck(browser) {
     await page.goto(base + "/app/transactions", { waitUntil: "networkidle" });
     await page.locator(".id-button").first().click();
     const act = page.locator(".drawer-actions");
+    await act.waitFor();
     const make = act.getByRole("button", { name: /create investigation/i });
     if (await make.count()) await make.click();
     await act.getByText(/in investigation/i).first().waitFor();
@@ -131,6 +132,15 @@ async function investigationChecks(browser) {
     await page.getByLabel("Case status filter").selectOption(other);
     record("investigations: selected case stays listed under a non-matching filter", (await page.locator(".case-item.selected").count()) === 1);
     await page.getByLabel("Case status filter").selectOption("all");
+    const items = page.locator(".case-item");
+    if ((await items.count()) > 1) {
+      await items.nth(1).click();
+      const picked = await page.locator(".case-detail h2").first().innerText();
+      await page.reload({ waitUntil: "networkidle" });
+      record("investigations: the selected case survives a reload (?case=)", (await page.locator(".case-detail h2").first().innerText()) === picked && /case=/.test(page.url()));
+      const idLine = await page.locator(".case-item.selected").count();
+      record("investigations: list marks the selected case", idLine === 1);
+    }
     const draft = "draft kept " + Date.now();
     await page.locator("#note").fill(draft);
     await page.route("**/api/cases/**", (r) => (r.request().method() === "PATCH" ? r.abort() : r.continue()));
@@ -218,6 +228,123 @@ async function transactionChecks(browser) {
   }
 }
 
+// Overview, URL state and session expiry: links do what they say, refresh and Back behave, 401 is explained.
+async function routeChecks(browser) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(base + "/app/overview", { waitUntil: "networkidle" });
+    await page.locator(".stat").first().waitFor();
+    record("overview: four stats, no decorative arrows", (await page.locator(".stat").count()) === 4);
+    await page.locator(".stat.is-link").first().click();
+    await page.waitForURL("**/app/transactions");
+    await page.locator(".id-button").first().waitFor();
+    record("overview: 'Flagged for review' opens Transactions filtered to flagged", (await page.getByLabel("Anomaly level").inputValue()) === "flagged");
+    const id = await page.locator(".id-button").first().innerText();
+    await page.locator(".id-button").first().click();
+    await page.waitForURL(/tx=/);
+    await page.reload({ waitUntil: "networkidle" });
+    await page.locator(".tx-pane").waitFor();
+    record("routes: ?tx= reopens the evidence after a reload", (await page.locator(".tx-pane #evidence-title").innerText()) === id);
+    await page.goBack();
+    await page.locator(".tx-pane").waitFor({ state: "detached" });
+    record("routes: Back closes the evidence pane", !/tx=/.test(page.url()));
+    await page.goForward();
+    await page.locator(".tx-pane").waitFor();
+    record("routes: Forward reopens it", /tx=/.test(page.url()));
+    await page.goto(base + "/app/transactions?tx=NOT-A-REAL-ID", { waitUntil: "networkidle" });
+    record("routes: unknown ?tx= explains itself", (await page.getByText(/is not in run/).count()) > 0);
+    await page.route("**/api/runs", (r) => r.fulfill({ status: 401, contentType: "application/json", body: JSON.stringify({ detail: "Sign in to use the workspace." }) }));
+    await page.goto(base + "/app/overview", { waitUntil: "networkidle" });
+    await page.getByText(/Your session ended/).waitFor();
+    const href = await page.getByRole("link", { name: "Sign in again" }).getAttribute("href");
+    record("session: 401 shows a sign-in link that returns to this page", href === "/login?next=%2Fapp%2Foverview", href || "");
+  } catch (e) {
+    record("routes: overview, URL state and session checks", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
+  await context.close();
+}
+
+// Linked accounts and Evidence search: controls work, state is in the URL, phones get the table not the graph.
+async function exploreChecks(browser) {
+  const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(base + "/app/network", { waitUntil: "networkidle" });
+    await page.locator(".stat").first().waitFor();
+    const options = await page.locator("#entity option").evaluateAll((os) => os.map((o) => o.value));
+    const other = options[options.length - 1];
+    await page.locator("#entity").selectOption(other);
+    await page.reload({ waitUntil: "networkidle" });
+    record("linked accounts: chosen account survives a reload (?account=)", (await page.locator("#entity").inputValue()) === other && /account=/.test(page.url()));
+    const link = page.locator(".link-table .id-button").first();
+    if (await link.count()) {
+      const name = await link.innerText();
+      await link.click();
+      await page.waitForFunction((n) => document.querySelector("#entity")?.value === n, name);
+      record("linked accounts: a linked account in the table becomes the selected account", true);
+    } else record("linked accounts: an account without links says so", (await page.getByText(/shares no device/).count()) > 0);
+    await page.goto(base + "/app/assistant", { waitUntil: "networkidle" });
+    await page.locator(".suggestions button").first().click();
+    await page.locator(".source").first().waitFor();
+    record("evidence search: an example runs the search and cites results", /q=/.test(page.url()));
+    await page.locator(".source").first().click();
+    await page.getByRole("dialog").waitFor();
+    record("evidence search: a result opens its transaction evidence", true);
+    await page.keyboard.press("Escape");
+    await page.reload({ waitUntil: "networkidle" });
+    await page.locator(".source").first().waitFor();
+    record("evidence search: ?q= re-runs the search after a reload", true);
+    await page.getByLabel("Search", { exact: true }).fill("zzzzqqq-nothing");
+    await page.getByRole("button", { name: "Search", exact: true }).click();
+    await page.getByText(/No matching evidence/).waitFor();
+    record("evidence search: no match is stated plainly", true);
+    const phone = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const pp = await phone.newPage();
+    await pp.goto(base + "/app/network", { waitUntil: "networkidle" });
+    record("linked accounts: phone shows the table, not the graph", !(await pp.locator(".network-canvas").first().isVisible().catch(() => false)));
+    await phone.close();
+  } catch (e) {
+    record("explore: linked accounts and evidence search", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
+  await context.close();
+}
+
+// First-run, slow and failing states, simulated at the network layer so the user's data is untouched.
+async function stateChecks(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    const json = (body, status = 200) => (r) => r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+    await page.route("**/api/runs", json([]));
+    await page.route("**/api/datasets", json([]));
+    await page.route("**/api/cases", json([]));
+    for (const section of ["overview", "transactions", "network", "assistant", "monitoring"]) {
+      await page.goto(base + "/app/" + section, { waitUntil: "networkidle" });
+      const ok = (await page.getByRole("heading", { name: "No data yet" }).count()) === 1 && (await page.getByRole("button", { name: /load synthetic sample/i }).count()) === 1;
+      record("empty state S0 on " + section + ": one explanation and the two first choices", ok);
+    }
+    await page.unroute("**/api/runs");
+    await page.route("**/api/runs", async (r) => { await new Promise((x) => setTimeout(x, 1500)); r.fulfill({ status: 200, contentType: "application/json", body: "[]" }); });
+    await page.goto(base + "/app/overview", { waitUntil: "domcontentloaded" });
+    await page.locator(".page-skeleton").waitFor({ timeout: 5000 });
+    record("slow request: overview shows a loading skeleton", true);
+    await page.unroute("**/api/runs");
+    await page.route("**/api/runs", json({ detail: "boom" }, 500));
+    await page.goto(base + "/app/overview", { waitUntil: "networkidle" });
+    record("server error: message and Retry are shown", (await page.getByText("boom").count()) > 0 && (await page.getByRole("button", { name: "Retry" }).count()) > 0);
+    await page.goto(base + "/login", { waitUntil: "networkidle" });
+    await page.route("**/api/auth/login", json({ error: "Workspace login is not configured." }, 503));
+    await page.getByLabel("Workspace password").fill("sixteen-chars-pass");
+    await page.getByRole("button", { name: "Continue" }).click();
+    await page.getByText(/FINSIGHT_OWNER_PASSWORD/).waitFor();
+    record("login: not-configured tells the owner what to set", true);
+  } catch (e) {
+    record("states: empty, slow, failing, login", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
+  await context.close();
+}
+
 // Experiments and Data checks: caveat, n and positives, unlabeled datasets, no duplicated metrics.
 async function modelChecks(browser) {
   const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
@@ -253,6 +380,9 @@ if (!only || only === "journey") await journeyCheck(browser);
 if (!only || only === "journey" || only === "investigations") await investigationChecks(browser);
 if (!only || only === "onboarding") await onboardingCheck(browser);
 if (!only || only === "transactions") await transactionChecks(browser);
+if (!only || only === "routes") await routeChecks(browser);
+if (!only || only === "explore") await exploreChecks(browser);
+if (!only || only === "states") await stateChecks(browser);
 if (!only || only === "models") await modelChecks(browser);
 await browser.close();
 

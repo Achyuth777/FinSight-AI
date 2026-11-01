@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, useMemo, useRef } from "react";
 import {
   Activity,
@@ -32,7 +32,12 @@ import { Button } from "./ui/button";
 import { Sheet, SheetDescription, SheetTitle } from "./ui/sheet";
 import { TransactionsScreen } from "./workspace/transactions-screen";
 import { EvidencePanel } from "./workspace/evidence-panel";
-import { ActivityChart, RiskChart } from "./charts";
+import { ActivityChart } from "./charts";
+import { Stat, ShareBars } from "./ui/stat";
+import { Select, Input } from "./ui/field";
+import { Notice } from "./ui/notice";
+import { StatusTag } from "./ui/tag";
+import { TransactionTable } from "./workspace/transaction-table";
 import {
   api,
   type Tx,
@@ -40,6 +45,7 @@ import {
   type Dataset,
   type Case,
   type Metrics,
+  ApiError,
 } from "./types";
 const nav = [
   ["overview", "Overview", LayoutDashboard, "Work"],
@@ -60,8 +66,14 @@ const titles: Record<string, [string, string]> = {
   monitoring: ["Data checks", "Training versus held-out feature drift, data quality and run timing."],
   assistant: ["Evidence search", "Deterministic cited search over this run's transactions."],
 };
-const statusClass = (s: string) =>
-  s === "escalated" ? "amber" : s === "cleared" ? "" : "case";
+const statusKind = (s: string) => (s === "escalated" ? "flag" : s === "cleared" ? "clear" : "case") as "flag" | "clear" | "case";
+// What each decision means, in plain words. No decision blocks anything.
+const statusMeaning: Record<string, string> = {
+  open: "Open: created, not yet looked at.",
+  reviewing: "Reviewing: you are working on it.",
+  cleared: "Cleared: reviewed, no further action.",
+  escalated: "Escalated: needs someone else's attention.",
+};
 export default function Workspace({ section }: { section: string }) {
   const [run, setRun] = useState<Run | null>(null),
     [datasets, setDatasets] = useState<Dataset[]>([]),
@@ -70,11 +82,13 @@ export default function Workspace({ section }: { section: string }) {
     [runs, setRuns] = useState<Run[]>([]),
     [busy, setBusy] = useState(""),
     [error, setError] = useState(""),
+    [expired, setExpired] = useState(false),
     [notice, setNotice] = useState(""),
     [loaded, setLoaded] = useState(false),
     [selected, setSelected] = useState<Tx | null>(null),
     [mobile, setMobile] = useState(false);
   const lastFocused = useRef<HTMLElement | null>(null);
+  const caseDetail = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
   const lastTask = useRef<{ name: string; fn: () => Promise<void> } | null>(null);
   const [elapsed, setElapsed] = useState(0);
@@ -90,11 +104,12 @@ export default function Workspace({ section }: { section: string }) {
   const [contamination, setContamination] = useState(0.07),
     [trees, setTrees] = useState(150),
     [supervised, setSupervised] = useState(false),
-    [caseId, setCaseId] = useState(""),
+    [caseId, setCaseId] = useState(useSearchParams().get("case") || ""),
     [note, setNote] = useState(""),
     [caseStatus, setCaseStatus] = useState("all"),
-    [entity, setEntity] = useState(""),
-    [research, setResearch] = useState(""),
+    [entity, setEntity] = useState(useSearchParams().get("account") || ""),
+    [research, setResearch] = useState(useSearchParams().get("q") || ""),
+    [searched, setSearched] = useState(""),
     [answer, setAnswer] = useState<{
       answer: string;
       sources: { citation: string; transaction_id: string; text: string }[];
@@ -107,6 +122,7 @@ export default function Workspace({ section }: { section: string }) {
     try {
       await fn();
     } catch (e) {
+      if (e instanceof ApiError && e.status === 401) setExpired(true);
       // A rejected fetch means the API is unreachable; say so instead of the browser's wording.
       setError(
         e instanceof TypeError
@@ -280,84 +296,56 @@ export default function Workspace({ section }: { section: string }) {
   const flagFloor = flagged.length
     ? Math.min(...flagged.map((t) => t.risk_score))
     : undefined;
+  // Everything the Linked accounts screen needs, built once per run rather than per render.
+  const byAccount = useMemo(() => {
+    const m = new Map<string, Tx[]>();
+    for (const t of run?.transactions || []) {
+      const list = m.get(t.account_id);
+      if (list) list.push(t);
+      else m.set(t.account_id, [t]);
+    }
+    return m;
+  }, [run]);
+  const accountsByDevice = useMemo(() => {
+    const m = new Map<string, Set<string>>();
+    for (const t of run?.transactions || []) {
+      const s = m.get(t.device_id);
+      if (s) s.add(t.account_id);
+      else m.set(t.device_id, new Set([t.account_id]));
+    }
+    return m;
+  }, [run]);
+  const activeEntity = byAccount.has(entity) ? entity : high[0]?.account_id;
+  const entityRows = byAccount.get(activeEntity) || [];
+  const devices = [...new Set(entityRows.map((t) => t.device_id))];
+  // Only a device that another account also uses links accounts together.
+  const sharedDevices = devices.filter((d) => (accountsByDevice.get(d)?.size || 0) > 1);
+  const neighbors = [...new Set(sharedDevices.flatMap((d) => [...(accountsByDevice.get(d) || [])]))].filter((a) => a !== activeEntity).sort();
+  const plural = (n: number, w: string) => `${n.toLocaleString()} ${w}${n === 1 ? "" : "s"}`;
+  function chooseEntity(a: string) {
+    setEntity(a);
+    window.history.replaceState(null, "", "?account=" + encodeURIComponent(a));
+  }
+  async function search(q: string) {
+    setResearch(q);
+    window.history.replaceState(null, "", "?q=" + encodeURIComponent(q));
+    await task("Retrieving evidence", async () => {
+      if (!run) return;
+      setAnswer(await api("/research", { method: "POST", body: JSON.stringify({ run_id: run.id, query: q }) }));
+      setSearched(q);
+    });
+  }
+  // A shared link (?q=) runs its search once the run has loaded.
+  const autoSearched = useRef(false);
+  useEffect(() => {
+    if (run && section === "assistant" && research.trim().length >= 2 && !autoSearched.current) {
+      autoSearched.current = true;
+      search(research);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [run]);
   const chartRows =
     range === "test" ? rows.filter((t) => t.split === "test") : rows;
-  const activeEntity = entity || high[0]?.account_id;
-  const entityRows = rows.filter((t) => t.account_id === activeEntity);
-  const devices = [...new Set(entityRows.map((t) => t.device_id))];
-  const neighbors = [
-    ...new Set(
-      rows
-        .filter(
-          (t) => devices.includes(t.device_id) && t.account_id !== activeEntity,
-        )
-        .map((t) => t.account_id),
-    ),
-  ];
-  function table(items: Tx[], limit?: number) {
-    return (
-      <div className="table-scroll">
-        <table>
-          <thead>
-            <tr>
-              <th>Transaction / account</th>
-              <th>Merchant</th>
-              <th className="r">Amount (INR)</th>
-              <th className="r">Anomaly percentile (vs training)</th>
-              <th>Review</th>
-              <th>
-                <span className="sr-only">Details</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.slice(0, limit).map((t) => (
-              <tr key={t.transaction_id}>
-                <td>
-                  <button className="id-button" onClick={() => setSelected(t)}>
-                    {t.transaction_id}
-                  </button>
-                  <small>
-                    {t.account_id} · {utc(t.timestamp)}
-                  </small>
-                </td>
-                <td>{t.merchant}</td>
-                <td className="mono r">{money(t.amount)}</td>
-                <td className="r">
-                  <Score tx={t} threshold={flagFloor} />
-                </td>
-                <td>
-                  {caseByTx.get(t.transaction_id) ? (
-                    <span className="pill case">
-                      In investigation: {caseByTx.get(t.transaction_id)!.status}
-                    </span>
-                  ) : (
-                    <span className={"pill " + (t.flagged ? "amber" : "")}>
-                      {t.flagged ? "Flagged" : "Standard"}
-                    </span>
-                  )}
-                </td>
-                <td>
-                  <button
-                    className="icon-button"
-                    aria-label={"Inspect " + t.transaction_id}
-                    onClick={() => setSelected(t)}
-                  >
-                    <ArrowUpRight size={17} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!items.length && (
-          <div className="empty-small">
-            No transactions match these filters.
-          </div>
-        )}
-      </div>
-    );
-  }
   const importControl = (
     <label className={"button outline " + (busy ? "disabled" : "")}>
       <Upload size={16} /> Import CSV
@@ -456,7 +444,15 @@ export default function Workspace({ section }: { section: string }) {
               {busy}… {elapsed}s
             </div>
           )}
-          {error && !(section === "investigations" && activeCase) && (
+          {expired && (
+            <Notice
+              kind="error"
+              action={<a className="button outline small" href={"/login?next=" + encodeURIComponent(window.location.pathname)}>Sign in again</a>}
+            >
+              Your session ended. Sign in again to continue. Work already saved is kept; anything unsaved on this page is lost when you leave it.
+            </Notice>
+          )}
+          {error && !expired && !(section === "investigations" && activeCase) && (
             <div className="notice error" role="alert">
               {error}
               <Button
@@ -581,142 +577,100 @@ export default function Workspace({ section }: { section: string }) {
               </div>
             )
           )}
+          {!loaded && section !== "transactions" && (
+            <div className="page-skeleton" aria-hidden="true">
+              <div className="stat-grid">{[0, 1, 2, 3].map((i) => <div className="stat" key={i}><span className="skeleton" /><span className="skeleton tall" /></div>)}</div>
+              <div className="panel"><span className="skeleton wide" /><span className="skeleton wide" /><span className="skeleton wide" /></div>
+            </div>
+          )}
           {run && section === "overview" && (
             <>
-              <div className="metric-grid">
-                <div className="metric accent">
-                  <span>
-                    Transactions analyzed <ArrowUpRight size={16} />
-                  </span>
-                  <strong>{rows.length.toLocaleString()}</strong>
-                  <small>
-                    Across {new Set(rows.map((t) => t.account_id)).size}{" "}
-                    distinct accounts
-                  </small>
-                </div>
-                <div className="metric">
-                  <span>
-                    Flagged for review <ScanLine size={17} />
-                  </span>
-                  <strong>
-                    {flagged.length}
-                    <em>{pct(flagged.length / rows.length)}</em>
-                  </strong>
-                  <small>
-                    Model threshold · {pct(run.contamination)} training
-                    contamination
-                  </small>
-                </div>
-                <div className="metric">
-                  <span>
-                    Flagged transaction value <ArrowUpRight size={16} />
-                  </span>
-                  <strong>
-                    {money(flagged.reduce((a, t) => a + t.amount, 0))}
-                  </strong>
-                  <small>Review exposure · not confirmed fraud loss</small>
-                </div>
-                <div className="metric">
-                  <span>
-                    Open investigations <FileSearch size={17} />
-                  </span>
-                  <strong>
-                    {
-                      cases.filter((c) =>
-                        ["open", "reviewing"].includes(c.status),
-                      ).length
-                    }
-                  </strong>
-                  <small>Saved across all experiments</small>
-                </div>
+              <div className="stat-grid">
+                <Stat
+                  label="Flagged for review"
+                  value={flagged.length.toLocaleString()}
+                  note={
+                    rows.length
+                      ? `${pct(flagged.length / rows.length)} of ${rows.length.toLocaleString()} rows, above the model threshold (${pct(run.contamination)} training contamination)`
+                      : <Unavailable reason="this run has no rows" />
+                  }
+                  href="/app/transactions"
+                  onClick={() => {
+                    try { sessionStorage.setItem("finsight-landing", JSON.stringify({ risk: "flagged" })); } catch {}
+                  }}
+                />
+                <Stat
+                  label="Flagged value (INR)"
+                  value={money(flagged.reduce((a, t) => a + t.amount, 0))}
+                  note="Review exposure, not confirmed fraud loss"
+                />
+                <Stat
+                  label="Open investigations"
+                  value={cases.filter((c) => ["open", "reviewing"].includes(c.status)).length.toLocaleString()}
+                  note="Open or reviewing, across all runs"
+                  href="/app/investigations"
+                />
+                <Stat
+                  label="Transactions analyzed"
+                  value={rows.length.toLocaleString()}
+                  note={`${new Set(rows.map((t) => t.account_id)).size.toLocaleString()} distinct accounts`}
+                />
               </div>
-              <div className="overview-grid">
-                <div className="overview-main">
-                  <div className="chart-grid">
-                    <Panel
-                      title="Transaction activity"
-                      subtitle="Daily counts from the selected dataset"
-                      action={
-                        <select
-                          aria-label="Chart period"
-                          value={range}
-                          onChange={(e) => setRange(e.target.value)}
-                        >
-                          <option value="all">All data</option>
-                          <option value="test">Held-out only</option>
-                        </select>
-                      }
-                    >
-                      <div className="chart-legend">
-                        <span>
-                          <i />
-                          Transactions
-                        </span>
-                        <span>
-                          <i />
-                          Flagged
-                        </span>
-                      </div>
-                      <ActivityChart rows={chartRows} />
-                    </Panel>
-                    <Panel
-                      title="Anomaly distribution"
-                      subtitle="Percentile relative to training data"
-                    >
-                      <RiskChart rows={rows} />
-                    </Panel>
+              <Panel
+                title="Priority review queue"
+                subtitle="Highest anomaly percentiles first. Review each before any decision."
+                action={
+                  <Link className="text-link" href="/app/transactions">
+                    View all transactions <ArrowRight size={15} />
+                  </Link>
+                }
+              >
+                {flagged.length === 0 && rows.length > 0 && (
+                  <p className="panel-note">No transaction crossed the model threshold in this run. The rows below are the highest percentiles, not flags.</p>
+                )}
+                <TransactionTable
+                  items={high.slice(0, 5)}
+                  onSelect={(t) => setSelected(t)}
+                  flagFloor={flagFloor}
+                  caseByTx={caseByTx}
+                  caption="Five highest anomaly percentiles in this run"
+                  empty={<div className="empty-small">This run has no transactions.</div>}
+                />
+              </Panel>
+              <div className="chart-grid">
+                <Panel
+                  title="Transaction activity"
+                  subtitle="Daily counts (UTC dates)"
+                  action={
+                    <Select
+                      label="Chart period"
+                      value={range}
+                      onChange={(e) => setRange(e.target.value)}
+                      options={[["all", "All data"], ["test", "Held-out only"]]}
+                    />
+                  }
+                >
+                  <div className="chart-legend">
+                    <span><i />Transactions</span>
+                    <span><i />Flagged</span>
                   </div>
-                  <Panel
-                    title="Priority review queue"
-                    subtitle="Highest anomaly percentiles · analyst review required"
-                    action={
-                      <Link className="text-link" href="/app/transactions">
-                        View all <ArrowUpRight size={15} />
-                      </Link>
-                    }
-                  >
-                    {table(high, 5)}
-                  </Panel>
-                </div>
-                <aside className="activity-rail">
-                  <div className="rail-title">
-                    <h2>Signals & context</h2>
-                    <span>{Math.min(flagged.length, 3)}</span>
-                  </div>
-                  {high
-                    .filter((t) => t.flagged)
-                    .slice(0, 3)
-                    .map((t, i) => (
-                      <article className="signal-item" key={t.transaction_id}>
-                        <span className={"signal-tag tag-" + i}>
-                          {label(t.reasons[0].feature)} deviation
-                        </span>
-                        <h3>{t.account_id}</h3>
-                        <p>
-                          {featureLabel(t.reasons[0].feature)} differs from the
-                          training median by {t.reasons[0].deviation_iqr} IQR.
-                        </p>
-                        <div>
-                          <span>{t.transaction_id}</span>
-                          <button onClick={() => setSelected(t)}>
-                            Review <ArrowUpRight size={13} />
-                          </button>
-                        </div>
-                      </article>
-                    ))}
-                  <div className="model-status">
-                    <span className="status-dot" />
-                    <strong>Model run complete</strong>
-                    <p>
-                      Isolation Forest · {run.trees} trees
-                      <br />
-                      {run.train_count} train / {run.test_count} test
-                    </p>
-                    <Link href="/app/laboratory">
-                      Inspect experiment <ArrowRight size={14} />
-                    </Link>
-                  </div>
-                </aside>
+                  {chartRows.length ? <ActivityChart rows={chartRows} /> : <div className="empty-small">No rows in this period.</div>}
+                </Panel>
+                <Panel title="Anomaly distribution" subtitle="Rows by percentile band, relative to training scores">
+                  <ShareBars
+                    label="Rows by anomaly percentile band"
+                    total={rows.length}
+                    rows={[
+                      { name: "Below 80th", value: rows.filter((t) => t.risk_score < 80).length },
+                      { name: "80th to 95th", value: rows.filter((t) => t.risk_score >= 80 && t.risk_score < 95).length },
+                      { name: "95th and above", value: rows.filter((t) => t.risk_score >= 95).length },
+                    ]}
+                  />
+                  <p className="panel-note">
+                    Isolation Forest, {run.trees} trees. {run.train_count.toLocaleString()} training and {run.test_count.toLocaleString()} held-out rows.{" "}
+                    <Link className="text-link" href="/app/laboratory">Inspect experiment</Link>
+                  </p>
+                </Panel>
               </div>
             </>
           )}
@@ -736,102 +690,97 @@ export default function Workspace({ section }: { section: string }) {
           {(run || cases.length > 0) && section === "investigations" && (
             <div className="case-grid">
               <Panel
-                title="Case queue"
+                title="Investigation queue"
+                subtitle={`${cases.length.toLocaleString()} saved across all runs`}
                 action={
-                  <select
-                    aria-label="Case status filter"
+                  <Select
+                    label="Case status filter"
+                    id="case-status"
                     value={caseStatus}
                     onChange={(e) => setCaseStatus(e.target.value)}
-                  >
-                    {["all", "open", "reviewing", "cleared", "escalated"].map(
-                      (s) => (
-                        <option key={s}>{s}</option>
-                      ),
-                    )}
-                  </select>
+                    options={["all", "open", "reviewing", "cleared", "escalated"].map((s) => [s, s === "all" ? "All statuses" : s])}
+                  />
                 }
               >
-                {cases
-                  .filter(
-                    (c) =>
-                      caseStatus === "all" ||
-                      c.status === caseStatus ||
-                      c.id === activeCase?.id,
-                  )
-                  .map((c) => (
-                    <button
-                      className={
-                        "case-item " +
-                        (activeCase?.id === c.id ? "selected" : "")
-                      }
-                      key={c.id}
-                      onClick={() => {
-                        setCaseId(c.id);
-                        setNote("");
-                      }}
-                    >
-                      <span>
-                        {c.transaction_id}
-                        <span className={"pill " + statusClass(c.status)}>{c.status}</span>
-                      </span>
-                      <small>
-                        {c.transaction.account_id} ·{" "}
-                        {money(c.transaction.amount)}
-                      </small>
-                      <small>
-                        {c.source} · opened {utc(c.created_at)}
-                      </small>
-                    </button>
-                  ))}
+                <div className="case-list">
+                  {cases
+                    .filter((c) => caseStatus === "all" || c.status === caseStatus || c.id === activeCase?.id)
+                    .map((c) => (
+                      <button
+                        className={"case-item " + (activeCase?.id === c.id ? "selected" : "")}
+                        key={c.id}
+                        aria-current={activeCase?.id === c.id ? "true" : undefined}
+                        onClick={() => {
+                          setCaseId(c.id);
+                          // Deep-linkable selection: reload and back/forward keep this case.
+                          window.history.replaceState(null, "", "?case=" + encodeURIComponent(c.id));
+                          setNote("");
+                          if (window.innerWidth < 1100) caseDetail.current?.scrollIntoView({ block: "start" });
+                        }}
+                      >
+                        <span className="case-item-head">
+                          <span className="case-id mono">{c.transaction_id}</span>
+                          <StatusTag kind={statusKind(c.status)}>{c.status}</StatusTag>
+                        </span>
+                        <small className="mono">
+                          {c.transaction.account_id} · {money(c.transaction.amount)}
+                        </small>
+                        <small>
+                          Run {c.run_id.slice(0, 8)}
+                          {run && c.run_id === run.id ? " (loaded)" : ""} · opened {utc(c.created_at)}
+                        </small>
+                      </button>
+                    ))}
+                </div>
                 {cases.length > 0 &&
                   caseStatus !== "all" &&
                   !cases.some((c) => c.status === caseStatus) && (
                     <div className="empty-small">
                       No investigations with status “{caseStatus}”.
-                      <button
-                        type="button"
-                        className="text-link"
-                        onClick={() => setCaseStatus("all")}
-                      >
+                      <Button variant="outline" size="sm" onClick={() => setCaseStatus("all")}>
                         Show all statuses
-                      </button>
+                      </Button>
                     </div>
                   )}
                 {!cases.length && (
                   <div className="empty-small">
-                    No investigations yet. Open a transaction and choose
-                    “Create investigation”.
+                    No investigations yet. Open a transaction and choose “Create investigation”.
                     <Link href="/app/transactions" className="text-link">
                       Explore transactions <ArrowRight size={15} />
                     </Link>
                   </div>
                 )}
               </Panel>
+              <div ref={caseDetail} className="case-detail">
               {activeCase ? (
                 <Panel
                   title={activeCase.transaction_id}
                   subtitle={`Evidence snapshot · ${activeCase.transaction.account_id} · ${activeCase.source}`}
-                  action={
-                    <span className={"pill " + statusClass(activeCase.status)}>
-                      Status: {activeCase.status}
-                    </span>
-                  }
+                  action={<StatusTag kind={statusKind(activeCase.status)}>Status: {activeCase.status}</StatusTag>}
                 >
                   <div className="case-content">
                     <div className="case-summary">
                       <Score tx={activeCase.transaction} threshold={flagFloor} />
-                      <span>{money(activeCase.transaction.amount)}</span>
+                      <span className="mono">{money(activeCase.transaction.amount)}</span>
                       <span>{activeCase.transaction.merchant}</span>
                     </div>
-                    <h3>Evidence & decision timeline</h3>
+                    <p className="muted case-link">
+                      {run && activeCase.run_id === run.id ? (
+                        <Link className="text-link" href={"/app/transactions?tx=" + encodeURIComponent(activeCase.transaction_id)}>
+                          Open this transaction in Transactions <ArrowRight size={14} />
+                        </Link>
+                      ) : (
+                        <>Recorded in run {activeCase.run_id.slice(0, 8)}, which is not the loaded run. The snapshot below is what was saved.</>
+                      )}
+                    </p>
+                    <h3>Evidence and decision timeline</h3>
                     <ol className="timeline">
                       <li>
                         <span />
                         <div>
-                          <small>{utc(activeCase.transaction.timestamp)}</small>
+                          <small className="mono">{utc(activeCase.transaction.timestamp)}</small>
                           <p>
-                            Transaction recorded. Raw anomaly score{" "}
-                            {activeCase.transaction.anomaly_score}; percentile{" "}
+                            Transaction recorded. Raw anomaly score {activeCase.transaction.anomaly_score}; percentile{" "}
                             {activeCase.transaction.risk_score}.
                           </p>
                         </div>
@@ -840,62 +789,52 @@ export default function Workspace({ section }: { section: string }) {
                         <li key={`${e.at}-${i}`}>
                           <span />
                           <div>
-                            <small>
-                              {e.at.slice(0, 19).replace("T", " ")} UTC ·{" "}
-                              {e.type}
+                            <small className="mono">
+                              {utc(e.at)} · {e.type}
                             </small>
                             <p>{e.text}</p>
                           </div>
                         </li>
                       ))}
                     </ol>
-                    <label className="field-label" htmlFor="note">
-                      Analyst note
-                    </label>
-                    <textarea
-                      id="note"
-                      placeholder="What did you observe? Include the evidence and your reasoning."
-                      maxLength={4000}
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                    />
+                    <div className="field">
+                      <label htmlFor="note">Analyst note</label>
+                      <textarea
+                        id="note"
+                        placeholder="What did you observe? Include the evidence and your reasoning."
+                        maxLength={4000}
+                        value={note}
+                        onChange={(e) => setNote(e.target.value)}
+                        aria-describedby="note-count"
+                      />
+                      <p className="field-hint mono" id="note-count">{note.length.toLocaleString()} / 4,000</p>
+                    </div>
                     <div className="save-row">
-                      <Button
-                        disabled={!note.trim() || !!busy}
-                        onClick={() => updateCase(activeCase)}
-                      >
+                      <Button disabled={!note.trim() || !!busy} onClick={() => updateCase(activeCase)}>
                         Save note <Plus size={15} />
                       </Button>
+                      {!note.trim() && !notice && <span className="field-hint">Write a note to enable Save.</span>}
                       {notice && (
                         <span className="saved" role="status">
                           <Check size={15} /> {notice}
                         </span>
                       )}
                     </div>
-                    {error && (
-                      <div className="notice error" role="alert">
+                    {error && !expired && (
+                      <Notice kind="error" action={<Button variant="ghost" size="sm" onClick={() => lastTask.current && task(lastTask.current.name, lastTask.current.fn)}>Retry</Button>}>
                         {error} Your note is still in the box.
-                      </div>
+                      </Notice>
                     )}
-                    <div className="decision-row">
-                      <label htmlFor="decision">Investigation decision</label>
-                      <select
-                        id="decision"
-                        value={activeCase.status}
-                        disabled={!!busy}
-                        onChange={(e) => updateCase(activeCase, e.target.value)}
-                      >
-                        {["open", "reviewing", "cleared", "escalated"].map(
-                          (s) => (
-                            <option key={s}>{s}</option>
-                          ),
-                        )}
-                      </select>
-                    </div>
-                    <p className="muted">
-                      Decisions update this case only. No transactions are
-                      blocked or payments changed.
-                    </p>
+                    <Select
+                      label="Investigation decision"
+                      id="decision"
+                      className="decision-row"
+                      value={activeCase.status}
+                      disabled={!!busy}
+                      onChange={(e) => updateCase(activeCase, e.target.value)}
+                      hint={`${statusMeaning[activeCase.status] || ""} Decisions update this investigation only. No transactions are blocked and no payments change.`}
+                      options={["open", "reviewing", "cleared", "escalated"].map((s) => [s, s])}
+                    />
                   </div>
                 </Panel>
               ) : (
@@ -906,183 +845,127 @@ export default function Workspace({ section }: { section: string }) {
                   </div>
                 </Panel>
               )}
+              </div>
             </div>
           )}
           {run && section === "network" && (
-            <div className="network-grid">
+            <>
+              <div className="stat-grid">
+                <Stat label="Account" value={activeEntity} note={`${plural(entityRows.length, "transaction")} in this run`} />
+                <Stat label="Devices used" value={devices.length.toLocaleString()} note="Distinct device identifiers on this account" />
+                <Stat label="Shared with other accounts" value={sharedDevices.length.toLocaleString()} note={sharedDevices.length === 1 ? "device is also used elsewhere" : "devices are also used elsewhere"} />
+                <Stat label="Linked accounts" value={neighbors.length.toLocaleString()} note="Other accounts on those devices" />
+              </div>
               <Panel
-                title="Entity relationship explorer"
-                subtitle="Edges mean a shared device in this dataset; they do not prove fraud."
+                title="Linked accounts"
+                subtitle="A link means two accounts used the same device identifier in this dataset. It does not prove fraud."
                 action={
-                  <select
-                    aria-label="Select account"
+                  <Select
+                    label="Account"
+                    id="entity"
                     value={activeEntity}
-                    onChange={(e) => setEntity(e.target.value)}
-                  >
-                    {[...new Set(rows.map((t) => t.account_id))]
-                      .sort()
-                      .map((a) => (
-                        <option key={a}>{a}</option>
-                      ))}
-                  </select>
+                    onChange={(e) => chooseEntity(e.target.value)}
+                    options={[...byAccount.keys()].sort().map((a) => [a, a])}
+                  />
                 }
               >
-                <div className="network-canvas">
-                  <svg
-                    viewBox="0 0 700 440"
-                    aria-label={`Account ${activeEntity} shares ${devices.length} devices with ${neighbors.length} accounts`}
-                    role="group"
-                  >
-                    <defs>
-                      <pattern
-                        id="network-grid"
-                        width="24"
-                        height="24"
-                        patternUnits="userSpaceOnUse"
-                      >
-                        <circle cx="1" cy="1" r="1" fill="var(--line-strong)" />
-                      </pattern>
-                    </defs>
-                    <rect width="700" height="440" fill="url(#network-grid)" />
-                    {devices.slice(0, 8).map((d, i) => {
-                      const y = 60 + (i * 320) / Math.max(1, devices.length);
-                      return (
-                        <g key={d}>
-                          <line
-                            x1="175"
-                            y1="220"
-                            x2="350"
-                            y2={y}
-                            stroke="var(--cyan)"
-                          />
-                          {neighbors
-                            .slice(0, 10)
-                            .filter((a) =>
-                              rows.some(
-                                (t) => t.account_id === a && t.device_id === d,
-                              ),
-                            )
-                            .map((a) => {
-                              const j = neighbors.indexOf(a);
-                              return (
-                                <line
-                                  key={a}
-                                  x1="350"
-                                  y1={y}
-                                  x2="560"
-                                  y2={
-                                    45 +
-                                    (j * 350) /
-                                      Math.max(1, neighbors.length - 1)
-                                  }
-                                  stroke="var(--line-strong)"
-                                />
-                              );
-                            })}
-                          <rect
-                            x="328"
-                            y={y - 22}
-                            width="44"
-                            height="44"
-                            rx="10"
-                            fill="var(--surface-3)"
-                            stroke="var(--cyan)"
-                          />
-                          <text
-                            x="350"
-                            y={y + 42}
-                            textAnchor="middle"
-                            fill="var(--muted)"
-                            fontSize="12"
-                          >
-                            {d}
-                          </text>
-                        </g>
-                      );
-                    })}
-                    <circle cx="175" cy="220" r="42" fill="var(--accent)" />
-                    <text
-                      x="175"
-                      y="225"
-                      textAnchor="middle"
-                      fill="var(--accent-ink)"
-                      fontSize="13"
-                      fontWeight="600"
-                    >
-                      {activeEntity}
-                    </text>
-                    {neighbors.slice(0, 10).map((a, i) => (
-                      <g
-                        key={a}
-                        role="button"
-                        tabIndex={0}
-                        aria-label={"Explore " + a}
-                        onClick={() => setEntity(a)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setEntity(a);
-                          }
-                        }}
-                        className="graph-node"
-                      >
-                        <circle
-                          cx="560"
-                          cy={
-                            45 + (i * 350) / Math.max(1, neighbors.length - 1)
-                          }
-                          r="25"
-                          fill="var(--surface-3)"
-                          stroke="var(--purple)"
-                        />
-                        <text
-                          x="600"
-                          y={50 + (i * 350) / Math.max(1, neighbors.length - 1)}
-                          fill="var(--text)"
-                          fontSize="12"
-                        >
-                          {a}
-                        </text>
-                      </g>
-                    ))}
-                  </svg>
-                </div>
-                <div className="network-legend">
-                  <span>
-                    <i className="lime-dot" />
-                    Selected account
-                  </span>
-                  <span>
-                    <i className="cyan-dot" />
-                    Device
-                  </span>
-                  <span>
-                    <i className="purple-dot" />
-                    Linked account
-                  </span>
-                </div>
-              </Panel>
-              <Panel
-                title={activeEntity || "Entity"}
-                subtitle="Account evidence"
-              >
-                <div className="entity-summary">
-                  <strong>{entityRows.length}</strong>
-                  <span>transactions in this dataset</span>
-                  <div>{devices.length} shared device identifiers</div>
-                  <div>{neighbors.length} distinct accounts</div>
-                  <p className="muted">
-                    Select a linked account on the graph or use the account
-                    selector. Graph display is capped at 8 devices and 10
-                    neighbors; counts include all.
-                  </p>
-                </div>
-                {table(
-                  [...entityRows].sort((a, b) => b.risk_score - a.risk_score),
-                  4,
+                {entity && !byAccount.has(entity) && (
+                  <p className="panel-note">Account {entity} is not in this run, so {activeEntity} is shown instead.</p>
+                )}
+                {neighbors.length === 0 ? (
+                  <div className="empty-small">
+                    {activeEntity} shares no device with another account in this run.
+                    {byAccount.size > 1 && <span>Choose another account above to find links.</span>}
+                  </div>
+                ) : (
+                  <>
+                    <div className="network-canvas">
+                      {(() => {
+                        const sd = sharedDevices.slice(0, 8);
+                        const na = neighbors.slice(0, 10);
+                        const step = 40;
+                        const H = 40 + Math.max(sd.length, na.length, 3) * step;
+                        const cut = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + "…" : s);
+                        const dy = (i: number) => 40 + step / 2 + i * step + ((Math.max(sd.length, na.length, 3) - sd.length) * step) / 2;
+                        const ay = (i: number) => 40 + step / 2 + i * step + ((Math.max(sd.length, na.length, 3) - na.length) * step) / 2;
+                        return (
+                          <svg viewBox={`0 0 720 ${H}`} role="group" aria-label={`${activeEntity} shares ${plural(sharedDevices.length, "device")} with ${plural(neighbors.length, "account")}`}>
+                            {sd.map((d, i) => (
+                              <g key={d}>
+                                <line x1="96" y1={H / 2} x2="250" y2={dy(i)} stroke="var(--cyan)" strokeOpacity=".7" />
+                                {na.filter((a) => accountsByDevice.get(d)?.has(a)).map((a) => (
+                                  <line key={a} x1="360" y1={dy(i)} x2="540" y2={ay(na.indexOf(a))} stroke="var(--line-strong)" />
+                                ))}
+                              </g>
+                            ))}
+                            <circle cx="60" cy={H / 2} r="36" fill="var(--accent)" />
+                            <text x="60" y={H / 2 + 4} textAnchor="middle" fill="var(--accent-ink)" fontSize="13" fontWeight="600">{cut(activeEntity, 9)}</text>
+                            {sd.map((d, i) => (
+                              <g key={d}>
+                                <rect x="250" y={dy(i) - 14} width="110" height="28" rx="4" fill="var(--surface-3)" stroke="var(--cyan)" />
+                                <text x="305" y={dy(i) + 4} textAnchor="middle" fill="var(--text)" fontSize="12">{cut(d, 14)}<title>{d}</title></text>
+                              </g>
+                            ))}
+                            {na.map((a, i) => (
+                              <g key={a} role="button" tabIndex={0} aria-label={"Show " + a} className="graph-node" onClick={() => chooseEntity(a)}
+                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); chooseEntity(a); } }}>
+                                <circle cx="540" cy={ay(i)} r="13" fill="var(--surface-3)" stroke="var(--purple)" />
+                                <text x="562" y={ay(i) + 4} fill="var(--text)" fontSize="13">{cut(a, 18)}<title>{a}</title></text>
+                              </g>
+                            ))}
+                          </svg>
+                        );
+                      })()}
+                    </div>
+                    <p className="panel-note graph-note">
+                      The graph shows up to 8 shared devices and 10 linked accounts. The table lists every linked account.
+                    </p>
+                    <div className="table-scroll">
+                      <table className="link-table">
+                        <caption className="sr-only">Accounts linked to {activeEntity} through shared devices</caption>
+                        <thead>
+                          <tr>
+                            <th scope="col">Linked account</th>
+                            <th scope="col">Shared devices</th>
+                            <th scope="col" className="r">Transactions</th>
+                            <th scope="col" className="r">Flagged</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {neighbors.slice(0, 50).map((a) => {
+                            const list = byAccount.get(a) || [];
+                            const via = sharedDevices.filter((d) => accountsByDevice.get(d)?.has(a));
+                            return (
+                              <tr key={a}>
+                                <td><button className="id-button" onClick={() => chooseEntity(a)}>{a}</button></td>
+                                <td className="mono" title={via.join(", ")}>{via.slice(0, 3).join(", ")}{via.length > 3 ? ` +${via.length - 3}` : ""}</td>
+                                <td className="mono r">{list.length.toLocaleString()}</td>
+                                <td className="mono r">{list.filter((x) => x.flagged).length.toLocaleString()}</td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                    {neighbors.length > 50 && <p className="panel-note">Showing 50 of {neighbors.length.toLocaleString()} linked accounts.</p>}
+                  </>
                 )}
               </Panel>
-            </div>
+              <Panel
+                title={`Transactions on ${activeEntity}`}
+                subtitle="Highest anomaly percentiles first"
+                action={<Link className="text-link" href={"/app/transactions?q=" + encodeURIComponent(activeEntity)}>View all in Transactions <ArrowRight size={15} /></Link>}
+              >
+                <TransactionTable
+                  items={[...entityRows].sort((a, b) => b.risk_score - a.risk_score).slice(0, 5)}
+                  onSelect={(t) => setSelected(t)}
+                  flagFloor={flagFloor}
+                  caseByTx={caseByTx}
+                  caption={`Top transactions for ${activeEntity}`}
+                  empty={<div className="empty-small">No transactions for this account.</div>}
+                />
+              </Panel>
+            </>
           )}
           {section === "laboratory" && (
             <>
@@ -1092,49 +975,32 @@ export default function Workspace({ section }: { section: string }) {
                   subtitle="Isolation Forest · deterministic seed 42"
                 >
                   <div className="form-body">
-                    <label className="field-label" htmlFor="dataset">
-                      Dataset
-                    </label>
-                    <select
+                    <Select
+                      label="Dataset"
                       id="dataset"
                       value={dataset}
                       onChange={(e) => setDataset(e.target.value)}
-                    >
-                      <option value="">Select a dataset</option>
-                      {datasets.map((d) => (
-                        <option key={d.id} value={d.id}>
-                          {d.name} · {d.row_count} rows
-                        </option>
-                      ))}
-                    </select>
-                    <label className="field-label" htmlFor="contamination">
-                      Expected training outliers{" "}
-                      <strong>{pct(contamination)}</strong>
-                    </label>
-                    <input
+                      error={!datasets.length ? "No datasets yet. Import a CSV or load the synthetic sample from Overview." : ""}
+                      options={[["", "Select a dataset"], ...datasets.map((d) => [d.id, `${d.name} · ${d.row_count.toLocaleString()} rows`])]}
+                    />
+                    <Input
+                      label={`Expected training outliers: ${pct(contamination)}`}
                       id="contamination"
                       type="range"
                       min=".01"
                       max=".2"
                       step=".01"
                       value={contamination}
+                      hint="Sets the training decision threshold, not the fraud rate."
                       onChange={(e) => setContamination(Number(e.target.value))}
                     />
-                    <p className="muted">
-                      Sets the training decision threshold, not the fraud rate.
-                    </p>
-                    <label className="field-label" htmlFor="trees">
-                      Number of trees
-                    </label>
-                    <select
+                    <Select
+                      label="Number of trees"
                       id="trees"
-                      value={trees}
+                      value={String(trees)}
                       onChange={(e) => setTrees(Number(e.target.value))}
-                    >
-                      {[50, 100, 150, 200, 300].map((n) => (
-                        <option key={n}>{n}</option>
-                      ))}
-                    </select>
+                      options={[50, 100, 150, 200, 300].map((n) => [String(n), String(n)])}
+                    />
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
@@ -1155,6 +1021,7 @@ export default function Workspace({ section }: { section: string }) {
                     >
                       <Beaker size={17} /> Run experiment
                     </Button>
+                    {!dataset && <p className="field-hint">Select a dataset to enable Run.</p>}
                     <a href="/api/template" className="text-link">
                       Download CSV template <ArrowDownToLine size={15} />
                     </a>
@@ -1321,48 +1188,24 @@ export default function Workspace({ section }: { section: string }) {
           )}
           {run && section === "monitoring" && (
             <>
-              <div className="metric-grid">
-                <div className="metric">
-                  <span>Batch inference time</span>
-                  <strong>
-                    {run.inference_ms.toFixed(1)}
-                    <em>ms</em>
-                  </strong>
-                  <small>{rows.length} rows · measured during this run</small>
-                </div>
-                <div className="metric">
-                  <span>Total experiment time</span>
-                  <strong>
-                    {(run.duration_ms / 1000).toFixed(2)}
-                    <em>s</em>
-                  </strong>
-                  <small>Includes optional classifier + SHAP</small>
-                </div>
-                <div className="metric">
-                  <span>Import validation</span>
-                  <strong>Applied</strong>
-                  <small>Required fields, ranges and unique IDs are checked at import; failing files are rejected, not scored</small>
-                </div>
-                <div className="metric">
-                  <span>Feature drift flags</span>
-                  <strong>
-                    {run.drift.filter((d) => d.status === "review").length}
-                    <em>/ {run.drift.length}</em>
-                  </strong>
-                  <small>PSI above 0.20 · heuristic review threshold</small>
-                </div>
+              <div className="stat-grid">
+                <Stat label="Batch inference time" value={`${run.inference_ms.toFixed(1)} ms`} note={`${rows.length.toLocaleString()} rows, measured during this run`} />
+                <Stat label="Total experiment time" value={`${(run.duration_ms / 1000).toFixed(2)} s`} note="Includes the optional classifier and SHAP" />
+                <Stat label="Import validation" value="Applied" note="Required fields, ranges and unique IDs are checked at import. Failing files are rejected, not scored." />
+                <Stat label="Feature drift flags" value={`${run.drift.filter((d) => d.status === "review").length} of ${run.drift.length}`} note="PSI above 0.20, a heuristic review threshold" />
               </div>
               <Panel
                 title="Feature distribution drift"
                 subtitle="Population Stability Index · training vs held-out rows · bar scale 0–0.50 (capped)"
               >
                 <div className="table-scroll">
-                  <table>
+                  <table className="drift-table">
+                    <caption className="sr-only">Population stability index per feature, training versus held-out rows</caption>
                     <thead>
                       <tr>
                         <th>Feature</th>
                         <th>PSI</th>
-                        <th>Distribution shift</th>
+                        <th>Distribution shift (bar full at PSI 0.50, tick at 0.20)</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -1371,7 +1214,7 @@ export default function Workspace({ section }: { section: string }) {
                         <tr key={d.feature}>
                           <td>{featureLabel(d.feature)}</td>
                           <td className="mono">
-                            {d.psi == null ? "Unavailable" : d.psi.toFixed(4)}
+                            {d.psi == null ? <Unavailable reason="constant training feature" /> : d.psi.toFixed(4)}
                           </td>
                           <td>
                             <div className="drift-track" aria-hidden="true">
@@ -1385,13 +1228,9 @@ export default function Workspace({ section }: { section: string }) {
                             </div>
                           </td>
                           <td>
-                            <span
-                              className={
-                                "pill " + (d.status === "review" ? "amber" : "")
-                              }
-                            >
-                              {d.status}
-                            </span>
+                            <StatusTag kind={d.status === "review" ? "flag" : "clear"}>
+                              {d.status === "review" ? "Review" : "Stable"}
+                            </StatusTag>
                           </td>
                         </tr>
                       ))}
@@ -1420,112 +1259,71 @@ export default function Workspace({ section }: { section: string }) {
               </p>
             </>
           )}
-          {run && section === "assistant" && (
-            <div className="research-layout">
-              <Panel
-                title="Research assistant"
-                subtitle="Evidence retrieval · no generative model connected"
-                action={<span className="pill">CITED SOURCES</span>}
-              >
-                <div className="research-body">
-                  <span className="empty-icon">
-                    <Sparkles size={28} />
-                  </span>
-                  <h2>Start with a question about the data.</h2>
-                  <p>
-                    Search an account, device, merchant, transaction ID, or
-                    flagged activity.
-                  </p>
-                  <div className="suggestions">
-                    {[
-                      "Flagged transactions",
-                      high[0]?.account_id,
-                      "Atlas Travel",
-                    ]
-                      .filter(Boolean)
-                      .map((q) => (
-                        <button key={q} onClick={() => setResearch(q)}>
-                          {q}
-                          <ArrowUpRight size={13} />
-                        </button>
-                      ))}
-                  </div>
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      task("Retrieving evidence", async () =>
-                        setAnswer(
-                          await api("/research", {
-                            method: "POST",
-                            body: JSON.stringify({
-                              run_id: run.id,
-                              query: research,
-                            }),
-                          }),
-                        ),
-                      );
-                    }}
-                  >
-                    <input
-                      aria-label="Evidence search"
-                      value={research}
-                      onChange={(e) => setResearch(e.target.value)}
-                      placeholder="Search the current experiment…"
-                      minLength={2}
-                      maxLength={300}
-                      required
-                    />
-                    <Button
-                      type="submit"
-                      disabled={!!busy || research.trim().length < 2}
+          {run && section === "assistant" && (() => {
+            const top = high.filter((t) => t.flagged);
+            const merchantCount = new Map<string, number>();
+            top.forEach((t) => merchantCount.set(t.merchant, (merchantCount.get(t.merchant) || 0) + 1));
+            const topMerchant = [...merchantCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+            const examples = [...new Set(["flagged", top[0]?.account_id, topMerchant, top[0]?.device_id].filter((x): x is string => !!x && x.length >= 2))];
+            return (
+              <div className="research-layout">
+                <Panel title="Search this run" subtitle="Matches your words against transaction ID, account, device and merchant. Add “flagged” to keep flagged rows only.">
+                  <div className="research-body">
+                    <form
+                      className="search-form"
+                      onSubmit={(e) => {
+                        e.preventDefault();
+                        search(research.trim());
+                      }}
                     >
-                      <Search size={17} /> Search
-                    </Button>
-                  </form>
-                  {answer && (
-                    <div className="answer">
-                      <p>{answer.answer}</p>
-                      {answer.sources.map((s) => (
-                        <button
-                          className="source"
-                          key={s.transaction_id}
-                          onClick={() =>
-                            setSelected(
-                              rows.find(
-                                (t) => t.transaction_id === s.transaction_id,
-                              ) || null,
-                            )
-                          }
-                        >
-                          <b>
-                            {s.citation} {s.transaction_id}
-                          </b>
-                          <span>{s.text}</span>
-                          <ArrowUpRight size={16} />
-                        </button>
+                      <Input
+                        label="Search"
+                        id="evidence-query"
+                        className="search-field"
+                        value={research}
+                        onChange={(e) => setResearch(e.target.value)}
+                        placeholder="Account, device, merchant or transaction ID"
+                        minLength={2}
+                        maxLength={300}
+                        required
+                      />
+                      <Button type="submit" disabled={!!busy || research.trim().length < 2}>
+                        <Search size={17} /> Search
+                      </Button>
+                    </form>
+                    <div className="suggestions" aria-label="Examples from this run">
+                      <span>Examples from this run:</span>
+                      {examples.map((q) => (
+                        <button type="button" key={q} disabled={!!busy} onClick={() => search(q)}>{q}</button>
                       ))}
                     </div>
-                  )}
-                </div>
-              </Panel>
-              <Panel title="Grounded by design">
-                <div className="form-body">
-                  <ShieldCheck size={27} />
-                  <h3>Evidence before conclusions.</h3>
-                  <p>
-                    Every result links to a transaction in the selected model
-                    run. No outside facts or invented explanations are
-                    generated.
-                  </p>
-                  <p className="muted">
-                    This MVP uses deterministic matching. Semantic retrieval
-                    with sentence-transformers and LanceDB is an optional
-                    roadmap extension.
-                  </p>
-                </div>
-              </Panel>
-            </div>
-          )}
+                    {answer && (
+                      <div className="answer" aria-live="polite">
+                        <h3>Results for “{searched}”</h3>
+                        <p>{answer.answer}</p>
+                        {answer.sources.map((s) => {
+                          const tx = rows.find((t) => t.transaction_id === s.transaction_id);
+                          return (
+                            <button className="source" key={s.transaction_id} disabled={!tx} onClick={() => tx && setSelected(tx)}>
+                              <b className="mono">{s.citation} {s.transaction_id}</b>
+                              <span>{s.text}</span>
+                              <small>Open evidence <ArrowRight size={13} /></small>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </Panel>
+                <Panel title="How this works">
+                  <div className="form-body">
+                    <p>Keyword matching over this run only. There is no language model, and nothing here explains why a transaction is anomalous.</p>
+                    <p className="muted">Every result is numbered and opens the transaction it came from. At most 6 results are shown, highest anomaly percentile first.</p>
+                  </div>
+                </Panel>
+              </div>
+            );
+          })()}
           <div className="workspace-footer">
             <span>
               FINSIGHT AI <span> / </span> LOCAL MVP

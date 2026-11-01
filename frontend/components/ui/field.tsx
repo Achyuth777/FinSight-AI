@@ -10,13 +10,15 @@ function wrap(id: string, { label, hint, error, className = "" }: Common, contro
     </div>
   );
 }
-export function Input({ label, hint, error, className, ...props }: Common & Omit<React.ComponentProps<"input">, "className">) {
-  const id = useId();
+export function Input({ label, hint, error, className, id: given, ...props }: Common & Omit<React.ComponentProps<"input">, "className">) {
+  const auto = useId();
+  const id = given || auto;
   return wrap(id, { label, hint, error, className }, <input id={id} aria-invalid={error ? true : undefined} aria-describedby={error || hint ? id + "-msg" : undefined} {...props} />);
 }
 // Native select: the correct menu on phones, keyboard-complete, no dependency.
-export function Select({ label, hint, error, className, options, ...props }: Common & Omit<React.ComponentProps<"select">, "className"> & { options: [string, string][] }) {
-  const id = useId();
+export function Select({ label, hint, error, className, options, id: given, ...props }: Common & Omit<React.ComponentProps<"select">, "className"> & { options: string[][] }) {
+  const auto = useId();
+  const id = given || auto;
   return wrap(id, { label, hint, error, className }, (
     <select id={id} aria-describedby={error || hint ? id + "-msg" : undefined} {...props}>
       {options.map(([v, t]) => <option key={v} value={v}>{t}</option>)}

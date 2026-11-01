@@ -1,14 +1,15 @@
 "use client";
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { Button } from "../ui/button";
 import { Input, Select } from "../ui/field";
+import { Notice } from "../ui/notice";
 import { Sheet, SheetDescription, SheetTitle } from "../ui/sheet";
-import { StatusTag } from "../ui/tag";
 import type { Case, Run, Tx } from "../types";
 import { EvidencePanel } from "./evidence-panel";
-import { money, utc } from "./format";
-import { Panel, Score } from "./primitives";
+import { Panel } from "./primitives";
+import { TransactionTable } from "./transaction-table";
 import { useMediaQuery } from "./use-media-query";
 
 const PAGE = 25;
@@ -22,9 +23,21 @@ export function TransactionsScreen({
   run: Run | null; loading: boolean; cases: Case[]; busy: string; error: string; initialRisk?: string;
   onCreateCase: (tx: Tx) => void; onOpenCase: (id: string) => void;
 }) {
-  const [f, setF] = useState<Filters>({ ...DEFAULTS, risk: initialRisk || "all" });
+  const params = useSearchParams();
+  const [f, setF] = useState<Filters>({ ...DEFAULTS, risk: initialRisk || "all", query: params.get("q") || "" });
   const [page, setPage] = useState(0);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  // The open transaction lives in the URL (?tx=): refresh and direct links reopen it, Back closes it.
+  const selectedId = params.get("tx");
+  const pushed = useRef(false);
+  const setSelectedId = (id: string | null) => {
+    if (id) {
+      window.history.pushState(null, "", "?tx=" + encodeURIComponent(id));
+      pushed.current = true;
+    } else if (pushed.current) {
+      pushed.current = false;
+      window.history.back();
+    } else window.history.replaceState(null, "", window.location.pathname);
+  };
   const [filtersOpen, setFiltersOpen] = useState(false);
   const docked = useMediaQuery("(min-width: 1100px)");
   const titleRef = useRef<HTMLElement | null>(null);
@@ -78,13 +91,20 @@ export function TransactionsScreen({
   useEffect(() => {
     if (selectedId && docked) titleRef.current?.focus();
   }, [selectedId, docked]);
-  const close = () => {
-    const id = selectedId;
-    setSelectedId(null);
+  // Focus returns to the row only once the URL has actually cleared and the pane or sheet is gone.
+  const returnTo = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectedId || !returnTo.current) return;
+    const id = returnTo.current;
+    returnTo.current = null;
     requestAnimationFrame(() => {
-      const el = id ? document.querySelector<HTMLElement>(`[data-tx-id="${CSS.escape(id)}"] .id-button`) : null;
+      const el = document.querySelector<HTMLElement>(`[data-tx-id="${CSS.escape(id)}"] .id-button`);
       (el || document.getElementById("workspace-main"))?.focus();
     });
+  }, [selectedId]);
+  const close = () => {
+    returnTo.current = selectedId;
+    setSelectedId(null);
   };
 
   const evidence = selected && run && (
@@ -127,59 +147,27 @@ export function TransactionsScreen({
           </Button>
           </div>
         </div>
+        {selectedId && !selected && !loading && run && (
+          <div className="tx-missing">
+            <Notice kind="error" action={<Button variant="ghost" size="sm" onClick={() => setSelectedId(null)}>Dismiss</Button>}>
+              Transaction {selectedId} is not in run {run.id.slice(0, 8)}. Use Change run to open the run that contains it.
+            </Notice>
+          </div>
+        )}
         <p className="tx-count" role="status">
           {loading ? "Loading transactions" : `${sorted.length.toLocaleString()} matching transactions`}
         </p>
-        <div className="table-scroll" aria-busy={loading}>
-          <table className="tx-table">
-            <caption className="sr-only">
-              Transactions, highest {f.sort === "amount" ? "amount" : f.sort === "recent" ? "time (most recent)" : "anomaly percentile"} first
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Transaction</th>
-                <th scope="col" className="col-merchant">Merchant</th>
-                <th scope="col" className="r">Amount (INR)</th>
-                <th scope="col" className="r">Anomaly percentile</th>
-                <th scope="col">Review</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading
-                ? Array.from({ length: 8 }, (_, i) => (
-                    <tr key={i} className="skeleton-row" aria-hidden="true">
-                      {Array.from({ length: 5 }, (_, j) => <td key={j}><span className="skeleton" /></td>)}
-                    </tr>
-                  ))
-                : shown.map((t) => {
-                    const k = caseByTx.get(t.transaction_id);
-                    return (
-                      <tr key={t.transaction_id} data-tx-id={t.transaction_id} className={t.transaction_id === selectedId ? "is-selected" : ""}>
-                        <td className="c-id">
-                          <button className="id-button" title={t.transaction_id} aria-pressed={t.transaction_id === selectedId} onClick={() => setSelectedId(t.transaction_id)}>
-                            {t.transaction_id}
-                          </button>
-                          <small className="mono">{t.account_id} · {utc(t.timestamp)}</small>
-                          <small className="merchant-inline">{t.merchant}</small>
-                        </td>
-                        <td className="col-merchant c-merchant" title={t.merchant}>{t.merchant}</td>
-                        <td className="mono r c-amount">{money(t.amount)}</td>
-                        <td className="r c-score"><Score tx={t} threshold={flagFloor} /></td>
-                        <td className="c-review">
-                          {k ? <StatusTag kind="case">In investigation: {k.status}</StatusTag> : t.flagged ? <StatusTag kind="flag">Flagged</StatusTag> : <StatusTag kind="clear">Standard</StatusTag>}
-                        </td>
-                      </tr>
-                    );
-                  })}
-            </tbody>
-          </table>
-          {!loading && !sorted.length && (
+        <TransactionTable
+          items={shown} onSelect={(t) => setSelectedId(t.transaction_id)} selectedId={selectedId} flagFloor={flagFloor}
+          caseByTx={caseByTx} loading={loading}
+          caption={`Transactions, highest ${f.sort === "amount" ? "amount" : f.sort === "recent" ? "time (most recent)" : "anomaly percentile"} first`}
+          empty={
             <div className="empty-small">
               {rows?.length ? "No transactions match these filters." : "This run has no transactions."}
               {active && <Button variant="outline" size="sm" onClick={clear}>Clear filters</Button>}
             </div>
-          )}
-        </div>
+          }
+        />
         <div className="pagination">
           <span className="mono">
             {sorted.length ? `${(at * PAGE + 1).toLocaleString()} to ${(at * PAGE + shown.length).toLocaleString()} of ${sorted.length.toLocaleString()}` : "No rows"}
