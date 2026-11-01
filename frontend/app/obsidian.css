@@ -9,7 +9,7 @@ body{background:var(--bg);color:var(--text);font-size:14px;letter-spacing:-.008e
 .button.outline:hover,.outline:hover{border-color:#919aa7;background:#252b34}
 .ghost:hover{background:#252b34;color:var(--text)}
 .eyebrow{color:#b4c1cb;letter-spacing:1.8px;font-size:10px}
-.status-dot{background:var(--accent);box-shadow:0 0 0 3px #d5f78b16}
+
 .brand{letter-spacing:-1.25px;font-weight:730;color:#f5f6f9}
 .brand-ai{background:var(--accent-surface);color:#d5f78b;border:1px solid var(--accent-line);font-weight:800;letter-spacing:.5px}
 .marketing{background:#0b0e13;overflow:hidden}
@@ -109,12 +109,9 @@ body{background:var(--bg);color:var(--text);font-size:14px;letter-spacing:-.008e
 .workspace-main{background:#0e1117}
 .panel{background:#181e26;border-color:#303944;border-radius:var(--radius)}
 .metric{background:#181e26;border-color:#323b46;border-radius:var(--radius)}
-.metric.accent{background:#202731;border-color:var(--accent-line)}
-.metric.accent strong{color:#e6ffae}
-.dataset-strip{background:#171f24;border-color:#364049}
-.sandbox-card{background:#1e242c;border-color:#323c4a}
-.chart-grid .panel,.overview-grid .panel{box-shadow:0 10px 28px #00000014}
-.environment{border-color:#3b4859;background:#1b2129;color:#d2e5c6}
+
+.chart-grid .panel{box-shadow:0 10px 28px #00000014}
+
 input,select,textarea{background:#151b22;border-color:#3a4450;color:var(--text)}
 input::placeholder,textarea::placeholder{color:#8997a7}
 .pill{background:#2c3440;color:#c5d1e0}

@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import { useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -17,7 +16,6 @@ import { HeroIntelligence } from "@/components/hero-intelligence";
 import { Button } from "@/components/ui/button";
 export default function Home() {
   const [stage, setStage] = useState(0);
-  const reduce = useReducedMotion();
   return (
     <div className="marketing">
       <nav className="marketing-nav">
@@ -37,11 +35,7 @@ export default function Home() {
       </nav>
       <main>
         <section className="hero">
-          <motion.div
-            initial={false}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-          >
+          <div>
             <span className="eyebrow">
               SINGLE-ANALYST TRANSACTION REVIEW
             </span>
@@ -69,7 +63,7 @@ export default function Home() {
             <div className="hero-note">
               OPEN-SOURCE MVP <span>•</span> BUILT FOR TRANSPARENT INVESTIGATIONS
             </div>
-          </motion.div>
+          </div>
           <HeroIntelligence />
         </section>
         <div className="principle-strip">

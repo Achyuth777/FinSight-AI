@@ -1,3 +1,5 @@
+> **Historical record.** The browser checks listed below as unverified were completed later; see `docs/refinement/release-review.md` for current results, screenshots and open items. Product names in this file predate the Instrument redesign (for example "ML laboratory" is now Experiments).
+
 # Verification record — 26 October 2026
 
 ## Completed

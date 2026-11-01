@@ -1,6 +1,6 @@
 # Refinement backlog
 
-Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (160 of 160 checks pass; `execution/auth_check.mjs` 23 of 23), `pytest` (41 pass), `next build`, and screenshots in `docs/refinement/screenshots/`. The design system is `DESIGN.md`.
+Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (164 of 164 checks pass; `execution/auth_check.mjs` 23 of 23), `pytest` (41 pass), `next build`, and screenshots in `docs/refinement/screenshots/`. The design system is `DESIGN.md`.
 
 ## Completed
 
@@ -17,13 +17,14 @@ Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (160 of 160 checks
 | Marketing copy | Removed "new standard", the live-looking status dots, "explainable", "learning platform", "ML laboratory" | tsc, build |
 | Motion pass | Press scale, sheet and overlay enter/exit by `data-state`, keyboard opens skip animation, reduced motion keeps fades, hover lifts and decorative loops removed, instant in-app scroll, chart tooltip no longer travels | gate `motion` (16 checks) |
 | Production review | Dialog names, table fit and truncation, sticky bar, headline figures, focusable scroll regions, marketing contrast and headings, favicon, security headers, return path after expiry | gate `a11y`, `worst`; `auth_check.mjs`; `production-review.md` |
+| Final pass | One table-header style, 11px type floor, footer, copy; 117 dead CSS rules and 4 unused dependencies removed; DESIGN, README, directive, skill updated | gate `consistency`; `release-review.md` |
 
 ## Blockers and decisions needed
 
 1. **Marketing visual redesign** (`/`). Only the overclaiming copy was fixed. Restyling it needs a decision on a Persuade-mode direction; Instrument is approved for the workspace only. The page still uses olive/sage literals.
 2. ~~Session expiry with a real password~~ Resolved by `execution/auth_check.mjs`: expired, forged and missing cookies against a production server.
 3. ~~Axe scan~~ Resolved: axe runs in the gate on every route and key state. See `production-review.md`.
-4. **README, VERIFICATION, SKILL** still describe old labels and need reconciling with this behaviour.
+4. ~~README, VERIFICATION, SKILL~~ Reconciled in the final pass; see `release-review.md`.
 
 ## Remaining gaps
 
@@ -34,6 +35,5 @@ See `production-review.md` for the manual and deployed checks still open, and fo
 - Phone first screen still shows the context bar before the table.
 - Import validation errors are still one message, not a list.
 - Retry was tested for a failed request but not for a failed training run.
-- Unused legacy CSS (`.metric*`, `.donut*`, `.network-grid`, `.activity-rail`) remains in `globals.css`.
 - Open backend audit items: list endpoints decode payloads, `workspace.tsx` is still one large component, no eslint, `dev.mjs` Windows fix, `requirements.lock.txt`.
 - `frontend/AGENTS.md` is untracked and was not created by this work.

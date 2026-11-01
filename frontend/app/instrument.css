@@ -158,7 +158,8 @@
 .graph-node:focus-visible circle{stroke-width:3}
 .graph-node:focus-visible{outline:none}
 .graph-note{padding-top:10px}
-.link-table th,.link-table td{padding:10px 16px;font-size:13px}
+.link-table td{padding:10px 16px;font-size:13px}
+.link-table th{padding:10px 16px}
 .link-table .mono{overflow-wrap:anywhere;white-space:normal}
 .link-table .id-button{font:500 13px var(--font-mono-stack);color:var(--text)}
 .link-table .id-button:hover{color:var(--accent)}
@@ -223,3 +224,10 @@ html[data-input=keyboard] .sheet,html[data-input=keyboard] .dialog-overlay{anima
   .sheet[data-state=closed]{animation-name:fade-out}
   .skeleton{animation:none}
 }
+
+/* Type floor for the workspace: nothing a person has to read renders below 11px. */
+.panel-head p,.chart-legend,.chart-legend span,.breadcrumb,.breadcrumb strong,.pagination,.pagination span,.text-link,.panel-head .text-link{font-size:12px}
+td small,small.mono,.merchant-inline,.case-item small,.timeline small,.context-name b,.pill,.card-heading .pill,.brand-ai{font-size:11px}
+.workspace-footer,.workspace-footer span,.confusion span,.confusion b,.nav-count,.case-summary,.case-summary span{font-size:12px}
+.workspace-footer{flex-wrap:wrap;gap:4px 16px}
+.workspace-footer>span:first-child{white-space:nowrap}

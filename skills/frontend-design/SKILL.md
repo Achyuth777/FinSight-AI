@@ -9,20 +9,18 @@ Build an evidence-first financial investigation product. Read the affected page 
 
 ## Design tokens
 
-Use `frontend/app/globals.css` as the source of truth (Obsidian theme). Canvas #0b0e13, panels #161b22, raised #1c222b, borders #2b333e, primary text #f1f3f7, secondary text #a0aaba, action lime #d5f78b (ink #11161d), comparison cyan #94c8dc, secondary category lavender #beb7f6, caution amber #e2b659. Keep lime concentrated in primary actions, selection, and key signals. Never imply that green means confirmed fraud.
-
-Use a legible sans serif, restrained medium weight, 40–66px marketing hero text and 27–32px workspace headings. Favor 12–14px working text; reserve smaller sizes for secondary metadata. Use tabular numerals for currency, scores and counts. Set cards to 10–12px radius, one-pixel borders and 16–24px padding. Avoid glows, decorative gradients, emoji and fabricated customer logos.
+The root `DESIGN.md` (Instrument) is the source of truth for tokens, type, spacing, components, responsive rules, charts and motion; `frontend/app/globals.css` holds the `:root` tokens and `frontend/app/instrument.css` the workspace styles. Do not copy values into this file. Lime is for data marks, the selection line and the primary button only; never imply that colour means confirmed fraud. No text under 11px in the workspace, tabular numerals for figures, no gradients, glows, emoji or invented customer logos.
 
 ## Workflow
 
 1. Identify the analyst action and data source. Use actual backend results. Label synthetic data, model runs and unavailable results explicitly.
 2. Reuse the Button, Panel, chart, status and form patterns before creating another variant. Use semantic links for navigation and buttons for actions.
-3. Keep a 220px desktop sidebar, bounded main grid and optional context rail. Collapse the sidebar behind a labeled mobile control; stack panels at narrow widths. Contain horizontal scrolling within tables.
+3. Keep the 240px grouped sidebar and bounded content column (see DESIGN.md). Collapse the sidebar behind a labeled mobile control; stack panels at narrow widths. Contain horizontal scrolling within tables.
 4. Give each chart a title, units, legend, readable tooltip and accessible textual summary. Never plot decorative numbers as measured results.
 5. Label anomaly percentiles distinctly from fraud probabilities. Feature deviations are descriptive context, not SHAP. Label SHAP with its model and output scale. Do not render unavailable metrics as zero.
 6. Implement loading, empty, error and success states. Every primary control needs a real action and observable result. Keep dialog focus trapped, Escape-close enabled and focus restored using Radix.
-7. Run TypeScript/build and relevant behavior checks. Inspect actual rendered marketing, populated dashboard and transaction dialog. Review a narrow viewport when the environment supports it. Check keyboard reachability, text contrast and overflow.
-8. Fix observed problems and repeat only affected checks. Record evidence and remaining limitations in docs/VERIFICATION.md.
+7. Run TypeScript/build and `node execution/ui_check.mjs` (see README, Verification). Inspect actual rendered marketing, populated dashboard and transaction dialog. Review a narrow viewport when the environment supports it. Check keyboard reachability, text contrast and overflow.
+8. Fix observed problems and repeat only affected checks. Record evidence and remaining limitations in docs/refinement/.
 
 ## Concrete evaluations
 

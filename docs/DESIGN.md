@@ -1,11 +1,5 @@
-# FinSight design rationale
+# FinSight design rationale (superseded)
 
-Reference inspected: https://www.orca-fraud.com/ on 26 October 2026, plus the user-provided dashboard image.
+The design system is [`DESIGN.md`](../DESIGN.md) at the repository root: the Instrument direction, covering the analyst workspace and login.
 
-Observed homepage principles: near-black background, spacious centered typographic hero, understated outlined CTA, large product imagery and successive capability explanations. Observed dashboard principles: charcoal sidebar and content panels, fine outlines, compact metadata, selective pale cards, lime/cyan/lavender chart accents and a distinct right-hand activity rail.
-
-FinSight adapts these into an original graphite canvas (Obsidian), lime actions, an asymmetric typographic hero, a code-drawn network illustration and a separate analyst workspace. The visual hierarchy moves from measured summary cards to activity/distribution charts, a priority table and contextual signal cards. Pale sage provides a contrasting methodology section. No Orca logos, screenshots, proprietary illustrations or customer claims are included in the product.
-
-The public journey explains the product, methods and investigation workflow. The application prioritizes transaction inspection and auditable cases. All measurements come from selected model-run results. Illustrative marketing graphics are explicitly labeled.
-
-Tokens and verification procedure live in skills/frontend-design/SKILL.md and frontend/app/globals.css. The design skill was independently source-reviewed against drift and investigation components; the resulting fixes and browser verification limits are recorded in VERIFICATION.md.
+This file originally recorded the first design (Obsidian), which drew on public observations of a third-party fraud product's dark, restrained presentation. That direction survives only on the marketing page (`/`); no third-party logos, screenshots or assets are used. Refinement history, the two compared directions and the release review are in `docs/refinement/`.

@@ -12,7 +12,7 @@ const args = process.argv.slice(2);
 const arg = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
 const base = arg("--base", "http://127.0.0.1:3000");
 const shots = arg("--shots", "");
-const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models | motion | a11y | worst
+const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models | motion | a11y | worst | consistency
 if (shots) mkdirSync(shots, { recursive: true });
 
 const sections = ["overview", "transactions", "investigations", "network", "laboratory", "monitoring", "assistant"];
@@ -300,6 +300,32 @@ async function worstCaseChecks(browser) {
     await page.locator(".stat-value").first().waitFor();
     const split = await page.evaluate(() => [...document.querySelectorAll(".stat-value")].filter((e) => e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 1.15 * 1.5).map((e) => e.textContent));
     record(`overview: every headline figure stays on one line @${width}`, split.length === 0, split.join(" | "));
+    await context.close();
+  }
+}
+
+// Consistency: type floor and one table-header style across every workspace table.
+async function consistencyChecks(browser) {
+  for (const width of [375, 1440]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await ensureRun(context.request);
+    const page = await context.newPage();
+    const small = [];
+    const headers = new Set();
+    for (const s of sections) {
+      await page.goto(base + "/app/" + s, { waitUntil: "networkidle" });
+      await page.waitForTimeout(300);
+      const found = await page.evaluate(() => {
+        const visible = (e) => e.getBoundingClientRect().width > 0 && !e.closest("nextjs-portal");
+        const tiny = [...document.querySelectorAll("body *")].filter((e) => visible(e) && [...e.childNodes].some((n) => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 11).map((e) => e.tagName.toLowerCase() + "." + (e.className || "") + ":" + e.textContent.trim().slice(0, 20));
+        const th = [...document.querySelectorAll("th")].filter((e) => visible(e) && !e.classList.contains("sr-only")).map((e) => { const c = getComputedStyle(e); return c.fontSize + "/" + c.fontWeight + "/" + c.color; });
+        return { tiny, th };
+      });
+      small.push(...found.tiny.map((x) => s + " " + x));
+      found.th.forEach((x) => headers.add(x));
+    }
+    record(`consistency: no workspace text under 11px @${width}`, small.length === 0, small.slice(0, 3).join(" | "));
+    record(`consistency: every table header shares one size, weight and colour @${width}`, headers.size === 1, [...headers].join(" | "));
     await context.close();
   }
 }
@@ -630,6 +656,7 @@ if (!only || only === "models") await modelChecks(browser);
 if (!only || only === "motion") await motionChecks(browser);
 if (!only || only === "a11y") await a11yChecks(browser);
 if (!only || only === "worst") await worstCaseChecks(browser);
+if (!only || only === "consistency") await consistencyChecks(browser);
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

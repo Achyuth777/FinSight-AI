@@ -1,6 +1,6 @@
 # FinSight AI
 
-A local, single-analyst fraud investigation MVP with a separate marketing site. Inspired by Orca Fraud's restrained dark presentation and the supplied dashboard reference; original identity and interface assets.
+A local, single-analyst fraud investigation MVP: a FastAPI backend with an Isolation Forest pipeline, a Next.js analyst workspace, and a public marketing page. Design: [DESIGN.md](DESIGN.md).
 
 ## Run locally
 
@@ -41,15 +41,28 @@ export DATABASE_URL='postgresql+psycopg://finsight:local_only_change_me@localhos
 npm run dev
 ```
 
-On PowerShell set `$env:DATABASE_URL` instead of `export`. PostgreSQL configuration is supplied; the test suite in this build was run against SQLite. Never expose this MVP or its database to the internet without adding authentication, workspace authorization, rate limits and migrations. The UI is authenticated-style, not an authentication system.
+On PowerShell set `$env:DATABASE_URL` instead of `export`. PostgreSQL configuration is supplied; the test suite was run against SQLite. The web app has one shared owner password and a signed session cookie; there are no user accounts, roles or workspace isolation. Do not expose this MVP or its database to the internet without per-user authorization, rate limits and migrations.
+
+## Environment variables
+
+Names only; set them in your shell (the launcher does not load `.env`). See `.env.example`.
+
+| Name | Used by | Purpose |
+|---|---|---|
+| `DATABASE_URL` | backend | SQLAlchemy URL; defaults to a local SQLite file |
+| `API_URL` | web app | Base URL of the FastAPI backend. Defaults to `http://127.0.0.1:8000` outside production. In production it must be HTTPS or the proxy answers 503 |
+| `FINSIGHT_OWNER_PASSWORD` | web app | Workspace password, 16+ characters. With it unset and `NODE_ENV` not `production`, the workspace opens without sign-in (local development only) |
+| `FINSIGHT_SESSION_SECRET` | web app | Signs the session cookie, 32+ characters |
+| `FINSIGHT_API_KEY` | web app and backend | Shared secret sent as `X-Finsight-API-Key`; 32+ characters and required in production |
+| `FINSIGHT_PYTHON` | `npm run dev` launcher | Optional path to the Python interpreter |
 
 ## First investigation
 
-1. Open the workspace and choose **Load demo**. This creates 1,200 seeded synthetic transactions and trains an actual Isolation Forest.
+1. Open the workspace and choose **Load synthetic sample**. This creates 1,200 seeded synthetic transactions and trains an actual Isolation Forest.
 2. Open **Transactions**, filter by model flagged, inspect a transaction, and choose **Create investigation**.
 3. Open **Investigations**, add a note and change the status. Reload to verify persistence.
-4. In **ML laboratory**, choose a dataset and experiment settings. Enable XGBoost + SHAP to compare the supervised model.
-5. Inspect **Monitoring**, **Entity network**, and **Research assistant**. Research currently provides deterministic, cited evidence search, not an LLM.
+4. In **Experiments**, choose a dataset and experiment settings. Enable XGBoost + SHAP to compare the supervised model.
+5. Inspect **Data checks**, **Linked accounts**, and **Evidence search**. Evidence search is deterministic, cited keyword matching, not an LLM.
 
 ## CSV schema
 
@@ -86,7 +99,7 @@ Numeric inputs are limited to 1e12. Blank fields, duplicate transaction IDs, inv
 - `directives/`: documented workflows and edge cases.
 - `backend/main.py`: API orchestration, request schemas and persistence.
 - `execution/pipeline.py`: deterministic generation, validation, preprocessing, training and evaluation.
-- `frontend/`: Next.js App Router, React, TypeScript, Tailwind, shadcn-style Radix/CVA controls, Recharts, Lucide and Framer Motion.
+- `frontend/`: Next.js App Router, React, TypeScript, Radix Dialog, Recharts, Lucide and plain CSS (`app/instrument.css` is the workspace design). Tailwind is installed only for its reset.
 - `skills/frontend-design/SKILL.md`: reusable design standards and review workflow.
 - `tests/`: validation, temporal leakage, ML and API integration tests.
 
@@ -94,13 +107,41 @@ SQLAlchemy stores datasets, immutable result snapshots and mutable cases with ev
 
 ## Verification
 
+Backend and build:
+
 ```bash
 pip install -r requirements-dev.txt
 python -m pytest tests -q
+npm run typecheck --prefix frontend
 npm run build --prefix frontend
 ```
 
-See `docs/VERIFICATION.md` for checks actually completed and limitations. API reference: http://localhost:8000/docs.
+Browser checks (Playwright with your installed Chrome or Edge; no browser download). Start the API on a scratch database and the web app in development mode, then run the gate:
+
+```bash
+DATABASE_URL=sqlite:///./.tmp/check.db python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+npm run dev --prefix frontend
+node execution/ui_check.mjs
+```
+
+`--only overflow|drawer|journey|investigations|onboarding|transactions|routes|explore|states|models|motion|a11y|worst|consistency` runs one group. The gate creates demo data and test cases, so point it at a scratch database, never at data you care about.
+
+Sign-in, session expiry and security headers need a production server and are checked separately. Build, start `next start` with `FINSIGHT_OWNER_PASSWORD`, `FINSIGHT_SESSION_SECRET` and `FINSIGHT_API_KEY` set, then run this with the same owner password and session secret in your shell:
+
+```bash
+node execution/auth_check.mjs
+```
+
+Results, screenshots and open items: `docs/refinement/release-review.md`. Earlier history: `docs/VERIFICATION.md`. API reference: http://localhost:8000/docs.
+
+## Known limitations
+
+- Single shared password; no user accounts, roles, audit identity or workspace isolation.
+- `GET /api/runs/{id}` returns every transaction (about 614 KB for 1,200 rows, about 10 MB at the 20,000-row limit) with no paging.
+- In production the web app only talks to an HTTPS backend, so a full local production run needs a TLS-terminated API.
+- No ESLint is configured. Screen-reader, real-device and deployed-environment checks have not been run (see the release review).
+- The marketing page has not been restyled to the workspace design system.
+- Models retrain per experiment; there is no artifact storage, migration system or streaming inference.
 
 ## Incremental development
 

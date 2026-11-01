@@ -15,4 +15,3 @@ export function Sheet({ open, onOpenChange, onOpenAutoFocus, onCloseAutoFocus, l
 }
 export const SheetTitle = Dialog.Title;
 export const SheetDescription = Dialog.Description;
-export const SheetClose = Dialog.Close;

@@ -840,7 +840,7 @@ export default function Workspace({ section }: { section: string }) {
                   </div>
                 </Panel>
               ) : (
-                <Panel title="Your evidence stays together">
+                <Panel title="No investigation selected">
                   <div className="empty-small">
                     <FileSearch size={36} />
                     <p>Select or create an investigation to begin.</p>
@@ -983,7 +983,7 @@ export default function Workspace({ section }: { section: string }) {
                       value={dataset}
                       onChange={(e) => setDataset(e.target.value)}
                       error={!datasets.length ? "No datasets yet. Import a CSV or load the synthetic sample from Overview." : ""}
-                      options={[["", "Select a dataset"], ...datasets.map((d) => [d.id, `${d.name} · ${d.row_count.toLocaleString("en-IN")} rows`])]}
+                      options={[["", "Select a dataset"], ...datasets.map((d) => [d.id, `${d.name} · ${d.row_count.toLocaleString("en-IN")}`])]}
                     />
                     <Input
                       label={`Expected training outliers: ${pct(contamination)}`}
