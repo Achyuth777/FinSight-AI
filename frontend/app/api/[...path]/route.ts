@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isAuthenticated } from "@/lib/session";
+import { isAuthenticated, isSameOrigin } from "@/lib/session";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -22,8 +22,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   backend.search = request.nextUrl.search;
   if (!["GET", "POST", "PATCH"].includes(request.method)) return NextResponse.json({ detail: "Method not allowed." }, { status: 405 });
   if (request.method !== "GET") {
-    const origin = request.headers.get("origin");
-    if (origin && origin !== request.nextUrl.origin) return NextResponse.json({ detail: "Invalid request origin." }, { status: 403 });
+    if (!isSameOrigin(request)) return NextResponse.json({ detail: "Invalid request origin." }, { status: 403 });
   }
   if (Number(request.headers.get("content-length") || 0) > 5500000) return NextResponse.json({ detail: "Request too large." }, { status: 413 });
   let body: ArrayBuffer | undefined;

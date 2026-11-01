@@ -16,6 +16,18 @@ function equal(a: string, b: string) {
   const y = Buffer.from(b);
   return x.length === y.length && timingSafeEqual(x, y);
 }
+// CSRF guard for state-changing requests. Accepts the app's own origin as Next reports it, or an origin whose host
+// equals the Host header (Next reports "localhost" in dev even when the page was opened via 127.0.0.1).
+export function isSameOrigin(request: { headers: Headers; nextUrl: { origin: string } }) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  if (origin === request.nextUrl.origin) return true;
+  try {
+    return new URL(origin).host === request.headers.get("host");
+  } catch {
+    return false;
+  }
+}
 export function canCreateSession() {
   return Boolean(secret()) && (process.env.FINSIGHT_OWNER_PASSWORD || "").length >= 16;
 }
