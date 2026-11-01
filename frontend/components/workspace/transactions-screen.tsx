@@ -117,11 +117,7 @@ export function TransactionsScreen({
   );
   return (
     <div className={"tx-layout" + (selected && docked ? " has-pane" : "")}>
-      <Panel
-        title="Transaction explorer"
-        subtitle="Anomaly percentile ranks each row against training scores; it is not a fraud probability. Flagged means above the model threshold."
-        className="tx-panel"
-      >
+      <Panel title="Transaction explorer" className="tx-panel">
         <div className="tx-filters" role="search" aria-label="Filter transactions">
           <div className="field tx-search">
             <label htmlFor="tx-search">Search</label>

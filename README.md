@@ -27,6 +27,8 @@ npm ci --prefix frontend
 python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 ```
 
+The API refuses requests unless it has a key or keyless local development is switched on deliberately. For local work set `FINSIGHT_INSECURE_DEV=1` first (`$env:FINSIGHT_INSECURE_DEV = "1"` in PowerShell, `export FINSIGHT_INSECURE_DEV=1` elsewhere). `npm run dev` from the repo root sets it for you when no `FINSIGHT_API_KEY` is configured.
+
 In a second terminal: `npm run dev --prefix frontend`, then open http://localhost:3000.
 
 For macOS/Linux hot reload use `python -m uvicorn backend.main:app --reload` and, in a second terminal, `npm run dev --prefix frontend`.
@@ -53,7 +55,9 @@ Names only; set them in your shell (the launcher does not load `.env`). See `.en
 | `API_URL` | web app | Base URL of the FastAPI backend. Defaults to `http://127.0.0.1:8000` outside production. In production it must be HTTPS or the proxy answers 503 |
 | `FINSIGHT_OWNER_PASSWORD` | web app | Workspace password, 16+ characters. With it unset and `NODE_ENV` not `production`, the workspace opens without sign-in (local development only) |
 | `FINSIGHT_SESSION_SECRET` | web app | Signs the session cookie, 32+ characters |
-| `FINSIGHT_API_KEY` | web app and backend | Shared secret sent as `X-Finsight-API-Key`; 32+ characters and required in production |
+| `FINSIGHT_API_KEY` | web app and backend | Shared secret sent as `X-Finsight-API-Key`; 32+ characters and required in production. The backend answers 503 when it has no key and `FINSIGHT_INSECURE_DEV` is off |
+| `FINSIGHT_INSECURE_DEV` | backend | `1` allows keyless API access and the `/docs` pages. Local development only; leave unset in any deployment |
+| `ALLOWED_HOSTS` | backend | Comma-separated hostnames the API accepts (DNS-rebinding guard). Loopback only by default in keyless dev; set it in a deployment |
 | `FINSIGHT_PYTHON` | `npm run dev` launcher | Optional path to the Python interpreter |
 
 ## First investigation
@@ -119,7 +123,7 @@ npm run build --prefix frontend
 Browser checks (Playwright with your installed Chrome or Edge; no browser download). Start the API on a scratch database and the web app in development mode, then run the gate:
 
 ```bash
-DATABASE_URL=sqlite:///./.tmp/check.db python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
+FINSIGHT_INSECURE_DEV=1 DATABASE_URL=sqlite:///./.tmp/check.db python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 npm run dev --prefix frontend
 node execution/ui_check.mjs
 ```

@@ -37,3 +37,9 @@ See `production-review.md` for the manual and deployed checks still open, and fo
 - Retry was tested for a failed request but not for a failed training run.
 - Open backend audit items: list endpoints decode payloads, `workspace.tsx` is still one large component, no eslint, `dev.mjs` Windows fix, `requirements.lock.txt`.
 - `frontend/AGENTS.md` is untracked and was not created by this work.
+
+## Follow-ups from the external review (current state)
+
+- Done: failed-sign-in throttling (5 per client and 50 overall per 15 minutes, in memory, per server process; a shared store is needed for several instances). Backend keyless access now needs `FINSIGHT_INSECURE_DEV=1`; otherwise a 32+ character `FINSIGHT_API_KEY` is required. `.env.example` lists the auth settings and an HTTPS backend. Transactions page starts about 160px higher at desktop and 215px at phone width, with the caveats under "About these scores". Run responses are gzip-compressed.
+- Partly done: `GET /api/runs/{id}/transactions` (filter, sort, offset and limit on the server) and `GET /api/runs/{id}?transactions=false` exist and are tested, but the workspace still loads the whole run, because Overview, Linked accounts and the evidence panel read every row. Cutting over needs summary, entity and per-transaction endpoints first.
+- Open: `workspace.tsx` is still about 1,370 lines.

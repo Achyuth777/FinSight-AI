@@ -99,6 +99,17 @@ for (const [route, width] of [["/", 375], ["/", 1440], ["/login", 375]]) {
   await context.close();
 }
 
+// Failed-attempt throttling. Each scenario uses its own reported client address so earlier checks are unaffected.
+const attempt = (ip, pw) => fetch(base + "/api/auth/login", { method: "POST", headers: { "Content-Type": "application/json", "x-real-ip": ip }, body: JSON.stringify({ password: pw }) });
+const statuses = [];
+for (let i = 0; i < 5; i++) statuses.push((await attempt("203.0.113.9", "wrong-password-" + i)).status);
+record("throttle: five wrong passwords are each answered 401", statuses.every((s) => s === 401), statuses.join(","));
+const locked = await attempt("203.0.113.9", password);
+record("throttle: the sixth attempt is refused with 429 even with the right password", locked.status === 429, String(locked.status));
+record("throttle: 429 carries Retry-After and no session cookie", Number(locked.headers.get("retry-after")) > 0 && !(locked.headers.get("set-cookie") || "").includes("finsight_session"), String(locked.headers.get("retry-after")));
+const other = await attempt("203.0.113.10", password);
+record("throttle: a different client address can still sign in", other.status === 200, String(other.status));
+
 await browser.close();
 const passed = results.filter((r) => r.ok).length;
 console.log(`\n${passed}/${results.length} checks passed`);

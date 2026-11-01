@@ -6,8 +6,9 @@ import logging
 import threading
 from datetime import datetime, timezone
 from typing import Literal
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request
+from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Query
 from fastapi.responses import Response, JSONResponse
+from starlette.middleware.gzip import GZipMiddleware
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, String, Text, select
@@ -27,16 +28,21 @@ class Record(Base):
 url = os.getenv('DATABASE_URL','sqlite:///./finsight.db')
 engine = create_engine(url, connect_args={'check_same_thread': False} if url.startswith('sqlite') else {}, pool_pre_ping=True)
 Base.metadata.create_all(engine)
-app = FastAPI(title='FinSight AI',version='0.1.1',description='Single-analyst research environment; private API access required on Render.',docs_url=None if os.getenv('RENDER') == 'true' else '/docs',redoc_url=None if os.getenv('RENDER') == 'true' else '/redoc',openapi_url=None if os.getenv('RENDER') == 'true' else '/openapi.json')
+# Keyless access is a deliberate local-development choice (FINSIGHT_INSECURE_DEV=1), never the default.
+def insecure_dev(): return os.getenv('FINSIGHT_INSECURE_DEV','').lower() in ('1','true','yes')
+_dev=insecure_dev()
+app = FastAPI(title='FinSight AI',version='0.1.1',description='Single-analyst research environment; private API access required unless FINSIGHT_INSECURE_DEV is set.',docs_url='/docs' if _dev else None,redoc_url='/redoc' if _dev else None,openapi_url='/openapi.json' if _dev else None)
+# The run payload is large JSON; compressing it is the cheapest cut in transfer size.
+app.add_middleware(GZipMiddleware,minimum_size=1000)
 
 @app.middleware('http')
 async def private_api(request: Request, call_next):
     if not request.url.path.startswith('/api/') or request.url.path == '/api/health':
         return await call_next(request)
     expected = os.getenv('FINSIGHT_API_KEY', '')
-    # Never serve protected API operations without a key on Render.
-    if not expected and os.getenv('RENDER') != 'true':
-        return await call_next(request)  # Local developer quick-start only.
+    # Without a key the API refuses to serve unless keyless local development was switched on explicitly.
+    if not expected and insecure_dev():
+        return await call_next(request)
     if len(expected) < 32:
         return JSONResponse({'detail': 'Backend access is not configured'}, status_code=503)
     supplied = request.headers.get('x-finsight-api-key', '')
@@ -45,9 +51,9 @@ async def private_api(request: Request, call_next):
     return await call_next(request)
 
 
-# DNS-rebinding guard. Local runs default to loopback hosts ("testserver" is the TestClient host); on Render the
-# public hostname is unknown here, so the guard applies only if ALLOWED_HOSTS is set explicitly.
-_hosts = os.getenv('ALLOWED_HOSTS') or (None if os.getenv('RENDER') == 'true' else 'localhost,127.0.0.1,[::1],testserver')
+# DNS-rebinding guard. Keyless local development defaults to loopback hosts ("testserver" is the TestClient host); a
+# keyed deployment's public hostname is unknown here, so the guard applies there only if ALLOWED_HOSTS is set.
+_hosts = os.getenv('ALLOWED_HOSTS') or ('localhost,127.0.0.1,[::1],testserver' if _dev else None)
 if _hosts: app.add_middleware(TrustedHostMiddleware, allowed_hosts=[h.strip() for h in _hosts.split(',')])
 log = logging.getLogger('finsight')
 # Case writes are read-modify-write; this serialises them within the single local process.
@@ -115,7 +121,25 @@ def run(body:Experiment):
 @app.get('/api/runs')
 def runs(): return [{k:v for k,v in d.items() if k not in ['transactions']} for d in records('run')]
 @app.get('/api/runs/{id}')
-def read_run(id:str): return get(id,'run')
+def read_run(id:str,transactions:bool=True):
+    run=get(id,'run')
+    if transactions: return run
+    rows=run.get('transactions',[])
+    return {**{k:v for k,v in run.items() if k!='transactions'},'transaction_count':len(rows),'flagged_count':sum(1 for t in rows if t.get('flagged'))}
+@app.get('/api/runs/{id}/transactions')
+def run_transactions(id:str,limit:int=Query(25,ge=1,le=200),offset:int=Query(0,ge=0),sort:Literal['risk','amount','recent']='risk',q:str=Query('',max_length=100),risk:Literal['all','flagged','high']='all',min_amount:float|None=Query(None,ge=0),split:Literal['all','train','test']='all'):
+    """One page of a run's transactions, filtered and sorted on the server (same rules as the Transactions screen)."""
+    rows=get(id,'run').get('transactions',[])
+    flagged=[t['risk_score'] for t in rows if t.get('flagged')]
+    needle=q.strip().lower()
+    keep=[t for t in rows if
+        (not needle or needle in ' '.join(str(t.get(k,'')) for k in ('transaction_id','account_id','merchant','device_id')).lower()) and
+        (risk=='all' or (t.get('flagged') if risk=='flagged' else t['risk_score']>=95)) and
+        (min_amount is None or t['amount']>=min_amount) and
+        (split=='all' or t.get('split')==split)]
+    key={'risk':lambda t:t['risk_score'],'amount':lambda t:t['amount'],'recent':lambda t:t['timestamp']}[sort]
+    keep.sort(key=key,reverse=True)  # stable, so ties keep run order
+    return {'total':len(keep),'limit':limit,'offset':offset,'flag_floor':min(flagged) if flagged else None,'items':keep[offset:offset+limit]}
 class CaseCreate(BaseModel):
     run_id:str
     transaction_id:str

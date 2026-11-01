@@ -17,7 +17,8 @@ const api = spawn(
     "--port",
     "8000",
   ],
-  { stdio: "inherit" },
+  // Keyless API access is allowed only for this local launcher, and only when no API key is configured.
+  { stdio: "inherit", env: { ...process.env, ...(process.env.FINSIGHT_API_KEY ? {} : { FINSIGHT_INSECURE_DEV: "1" }) } },
 );
 const web = spawn(
   "npm",

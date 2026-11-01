@@ -495,7 +495,7 @@ export default function Workspace({ section }: { section: string }) {
           {run && (() => {
             const stamps = rows.map((t) => t.timestamp).sort();
             return (
-              <div className="context-bar" role="group" aria-label="Analysis context">
+              <div className={"context-bar" + (section === "transactions" ? " is-compact" : "")} role="group" aria-label="Analysis context">
                 <div className="context-main">
                   <span className="context-name">
                     <Database size={14} />
@@ -532,9 +532,18 @@ export default function Workspace({ section }: { section: string }) {
                     Change run
                   </Link>
                 </div>
-                <p className="context-note">
-                  Batch analysis, not streaming. Scores are anomaly percentiles, not fraud probabilities. No payments are made.
-                </p>
+                {section === "transactions" ? (
+                  <details className="context-note">
+                    <summary>About these scores</summary>
+                    <p>
+                      Batch analysis, not streaming. The anomaly percentile ranks each row against training scores; it is not a fraud probability. Flagged means above the model threshold. No payments are made.
+                    </p>
+                  </details>
+                ) : (
+                  <p className="context-note">
+                    Batch analysis, not streaming. Scores are anomaly percentiles, not fraud probabilities. No payments are made.
+                  </p>
+                )}
               </div>
             );
           })()}

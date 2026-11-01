@@ -460,6 +460,12 @@ async function transactionChecks(browser) {
   };
   try {
     let { context, page } = await open(1440, 900);
+    // Routine review: rows start high on the page, and the score caveats stay one click away.
+    const rowTop = await page.evaluate(() => Math.round(document.querySelector("tbody tr").getBoundingClientRect().top));
+    record("transactions: the first row starts within 560px of the top at 1440x900", rowTop <= 560, "top " + rowTop + "px");
+    const aboutScores = page.getByText("About these scores");
+    await aboutScores.click();
+    record("transactions: 'About these scores' reveals the percentile caveat", (await page.getByText("it is not a fraud probability").count()) === 1);
     const first = page.locator(".id-button").first();
     await first.focus();
     await page.keyboard.press("Enter");

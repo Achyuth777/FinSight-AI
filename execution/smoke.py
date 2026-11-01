@@ -5,7 +5,7 @@ import httpx
 
 def main():
     with tempfile.TemporaryDirectory() as temp:
-        env={**os.environ,'DATABASE_URL':'sqlite:///'+str(Path(temp)/'smoke.db')}
+        env={**os.environ,'FINSIGHT_INSECURE_DEV':'1','DATABASE_URL':'sqlite:///'+str(Path(temp)/'smoke.db')}
         proc=subprocess.Popen([sys.executable,'-m','uvicorn','backend.main:app','--host','127.0.0.1','--port','8012'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         try:
             c=httpx.Client(base_url='http://127.0.0.1:8012',timeout=60,trust_env=False)
