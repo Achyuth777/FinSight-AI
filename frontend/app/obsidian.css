@@ -156,3 +156,12 @@ input::placeholder,textarea::placeholder{color:#8997a7}
 .ruler-th{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--muted);z-index:1}
 tbody tr.is-selected td{background:var(--accent-surface)}
 tbody tr.is-selected td:first-child{box-shadow:inset 1px 0 0 var(--accent)}
+
+/* Step 1: transactions table alignment and the evidence drawer's pinned action */
+th.r,td.r{text-align:right}
+.drawer{display:flex;flex-direction:column;max-height:100dvh;overflow-y:auto}
+.drawer-kind{font-size:12px;color:var(--muted)}
+.drawer-actions{position:sticky;bottom:-30px;margin:auto -30px -30px;padding:14px 30px 30px;background:inherit;border-top:1px solid var(--line);display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.drawer-actions .button{width:auto;margin:0;flex:1 1 180px}
+.table-scroll{position:relative}  /* contain absolutely positioned sr-only cells so they cannot widen the page */
+td small{color:var(--muted)}

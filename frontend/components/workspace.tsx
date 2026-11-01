@@ -198,10 +198,6 @@ export default function Workspace({ section }: { section: string }) {
       });
       setCases(await api<Case[]>("/cases"));
       setCaseId(c.id);
-      setNotice(
-        "Investigation saved. Open Investigations to add notes or a decision.",
-      );
-      setSelected(null);
     });
   }
   async function updateCase(c: Case, status?: string) {
@@ -250,6 +246,11 @@ export default function Workspace({ section }: { section: string }) {
   const flagged = rows.filter((t) => t.flagged),
     high = [...rows].sort((a, b) => b.risk_score - a.risk_score),
     activeCase = cases.find((c) => c.id === caseId) || cases[0];
+  const caseByTx = useMemo(() => {
+    const m = new Map<string, Case>();
+    if (run) for (const c of cases) if (c.run_id === run.id) m.set(c.transaction_id, c);
+    return m;
+  }, [cases, run]);
   const flagFloor = flagged.length
     ? Math.min(...flagged.map((t) => t.risk_score))
     : undefined;
@@ -275,8 +276,8 @@ export default function Workspace({ section }: { section: string }) {
             <tr>
               <th>Transaction / account</th>
               <th>Merchant</th>
-              <th>Amount</th>
-              <th>Anomaly percentile</th>
+              <th className="r">Amount (INR)</th>
+              <th className="r">Anomaly percentile (vs training)</th>
               <th>Review</th>
               <th>
                 <span className="sr-only">Details</span>
@@ -291,18 +292,24 @@ export default function Workspace({ section }: { section: string }) {
                     {t.transaction_id}
                   </button>
                   <small>
-                    {t.account_id} · {t.timestamp.slice(0, 10)}
+                    {t.account_id} · {utc(t.timestamp)}
                   </small>
                 </td>
                 <td>{t.merchant}</td>
-                <td className="mono">{money(t.amount)}</td>
-                <td>
+                <td className="mono r">{money(t.amount)}</td>
+                <td className="r">
                   <Score tx={t} threshold={flagFloor} />
                 </td>
                 <td>
-                  <span className={"pill " + (t.flagged ? "amber" : "")}>
-                    {t.flagged ? "Flagged" : "Standard"}
-                  </span>
+                  {caseByTx.get(t.transaction_id) ? (
+                    <span className="pill case">
+                      In investigation: {caseByTx.get(t.transaction_id)!.status}
+                    </span>
+                  ) : (
+                    <span className={"pill " + (t.flagged ? "amber" : "")}>
+                      {t.flagged ? "Flagged" : "Standard"}
+                    </span>
+                  )}
                 </td>
                 <td>
                   <button
@@ -382,11 +389,6 @@ export default function Workspace({ section }: { section: string }) {
             <strong>{nav.find((n) => n[0] === section)?.[1]}</strong>
           </div>
           <div className="topbar-right">
-            <span className="environment">
-              {run?.source === "uploaded"
-                ? "Uploaded dataset"
-                : "Synthetic sandbox"}
-            </span>
             <Link
               href="/"
               className="icon-button"
@@ -676,8 +678,7 @@ export default function Workspace({ section }: { section: string }) {
           {run && section === "transactions" && (
             <Panel
               title="Transaction explorer"
-              subtitle={`${sorted.length.toLocaleString()} matching transactions`}
-              action={<span className="pill">READ ONLY PAYMENTS</span>}
+              subtitle={`${sorted.length.toLocaleString()} matching transactions. Anomaly percentile ranks each row against training scores; it is not a fraud probability. Flagged means above the model threshold.`}
             >
               <div className="filters">
                 <div className="search-input">
@@ -729,8 +730,9 @@ export default function Workspace({ section }: { section: string }) {
               {table(sorted.slice(page * 12, (page + 1) * 12))}
               <div className="pagination">
                 <span>
-                  Page {page + 1} of{" "}
-                  {Math.max(1, Math.ceil(sorted.length / 12))}
+                  {sorted.length
+                    ? `${(page * 12 + 1).toLocaleString()} to ${Math.min((page + 1) * 12, sorted.length).toLocaleString()} of ${sorted.length.toLocaleString()}`
+                    : "No rows"}
                 </span>
                 <div>
                   <Button
@@ -1544,7 +1546,7 @@ export default function Workspace({ section }: { section: string }) {
             {selected && (
               <>
                 <div className="drawer-top">
-                  <span className="eyebrow">TRANSACTION EVIDENCE</span>
+                  <span className="drawer-kind">Transaction evidence</span>
                   <Dialog.Close
                     className="icon-button"
                     aria-label="Close transaction"
@@ -1569,7 +1571,7 @@ export default function Workspace({ section }: { section: string }) {
                   Anomaly percentile relative to training
                 </p>
                 <Dialog.Description className="muted">
-                  {selected.merchant} · {selected.timestamp}
+                  {selected.merchant} · {utc(selected.timestamp)}
                 </Dialog.Description>
                 <div className="drawer-amount">
                   {money(selected.amount)}
@@ -1620,12 +1622,26 @@ export default function Workspace({ section }: { section: string }) {
                   earlier transactions. History excludes the selected
                   transaction and later records.
                 </p>
-                <Button disabled={!!busy} onClick={() => createCase(selected)}>
-                  <Plus size={17} /> Create investigation
-                </Button>
-                <Link href="/app/investigations" className="text-link">
-                  Open investigations <ArrowRight size={15} />
-                </Link>
+                <div className="drawer-actions">
+                  {caseByTx.get(selected.transaction_id) ? (
+                    <>
+                      <span className="pill case">
+                        In investigation: {caseByTx.get(selected.transaction_id)!.status}
+                      </span>
+                      <Link
+                        href="/app/investigations"
+                        className="button primary"
+                        onClick={() => setCaseId(caseByTx.get(selected.transaction_id)!.id)}
+                      >
+                        Open investigation <ArrowRight size={16} />
+                      </Link>
+                    </>
+                  ) : (
+                    <Button disabled={!!busy} onClick={() => createCase(selected)}>
+                      <Plus size={17} /> Create investigation
+                    </Button>
+                  )}
+                </div>
               </>
             )}
           </Dialog.Content>

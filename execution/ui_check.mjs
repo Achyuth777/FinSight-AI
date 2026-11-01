@@ -74,9 +74,10 @@ async function drawerChecks(browser) {
   await dialog.waitFor();
   record("drawer opens and is labelled", (await dialog.getAttribute("aria-labelledby")) !== null);
   record("drawer takes focus", await page.evaluate(() => document.querySelector("[role=dialog]").contains(document.activeElement)));
-  const create = page.getByRole("button", { name: /create investigation/i });
+  // The pinned action is "Create investigation", or "Open investigation" once the case exists.
+  const create = page.locator(".drawer-actions").getByRole("button").or(page.locator(".drawer-actions a.button")).first();
   const box = await create.boundingBox();
-  record("drawer: Create investigation visible without scrolling @1024x768", !!box && box.y + box.height <= 768, box ? `bottom edge ${Math.round(box.y + box.height)}px` : "not found");
+  record("drawer: case action visible without scrolling @1024x768", !!box && box.y + box.height <= 768, box ? `bottom edge ${Math.round(box.y + box.height)}px` : "not found");
   if (shots) await page.screenshot({ path: `${shots}/21-drawer-desktop.png` });
   await page.keyboard.press("Escape");
   await dialog.waitFor({ state: "detached" });
@@ -91,7 +92,11 @@ async function journeyCheck(browser) {
     await ensureRun(context.request);
     await page.goto(base + "/app/transactions", { waitUntil: "networkidle" });
     await page.locator(".id-button").first().click();
-    await page.getByRole("button", { name: /create investigation/i }).click();
+    const act = page.locator(".drawer-actions");
+    const make = act.getByRole("button", { name: /create investigation/i });
+    if (await make.count()) await make.click();
+    await act.getByText(/in investigation/i).first().waitFor();
+    record("journey: drawer stays open and shows the case status", await page.getByRole("dialog").isVisible());
     await page.goto(base + "/app/investigations", { waitUntil: "networkidle" });
     const note = "ui-check note " + Date.now();
     await page.locator("#note").fill(note);
