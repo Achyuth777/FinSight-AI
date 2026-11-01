@@ -1,6 +1,6 @@
 # Refinement backlog
 
-Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (92 of 92 checks pass), `pytest` (41 pass), `next build`, and screenshots in `docs/refinement/screenshots/`. The design system is `DESIGN.md`.
+Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (108 of 108 checks pass), `pytest` (41 pass), `next build`, and screenshots in `docs/refinement/screenshots/`. The design system is `DESIGN.md`.
 
 ## Completed
 
@@ -15,6 +15,7 @@ Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (92 of 92 checks p
 | Login | Instrument styling; `?next=` return after an ended session; not-configured message names the environment variables | gate `states` |
 | Cross-cutting | One transaction table everywhere; 401 shows "Your session ended" with a sign-in link; unreachable API says so; `?tx=` reopens evidence, Back and Forward work | gate `routes` |
 | Marketing copy | Removed "new standard", the live-looking status dots, "explainable", "learning platform", "ML laboratory" | tsc, build |
+| Motion pass | Press scale, sheet and overlay enter/exit by `data-state`, keyboard opens skip animation, reduced motion keeps fades, hover lifts and decorative loops removed, instant in-app scroll, chart tooltip no longer travels | gate `motion` (16 checks) |
 
 ## Blockers and decisions needed
 
@@ -26,6 +27,7 @@ Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (92 of 92 checks p
 ## Remaining gaps
 
 - No arrow-key stepping between transaction rows.
+- Closing evidence uses `history.back()`, which is asynchronous: reopening within a few milliseconds of Escape (faster than a human) is undone by the pending back.
 - Phone first screen still shows the context bar before the table.
 - Import validation errors are still one message, not a list.
 - Retry was tested for a failed request but not for a failed training run.

@@ -31,6 +31,7 @@ import { Score, Panel, MetricCards, Unavailable } from "./workspace/primitives";
 import { Button } from "./ui/button";
 import { Sheet, SheetDescription, SheetTitle } from "./ui/sheet";
 import { TransactionsScreen } from "./workspace/transactions-screen";
+import { useInputMode } from "./workspace/input-mode";
 import { EvidencePanel } from "./workspace/evidence-panel";
 import { ActivityChart } from "./charts";
 import { Stat, ShareBars } from "./ui/stat";
@@ -90,6 +91,7 @@ export default function Workspace({ section }: { section: string }) {
   const lastFocused = useRef<HTMLElement | null>(null);
   const caseDetail = useRef<HTMLDivElement | null>(null);
   const router = useRouter();
+  useInputMode();
   const lastTask = useRef<{ name: string; fn: () => Promise<void> } | null>(null);
   const [elapsed, setElapsed] = useState(0);
   useEffect(() => {

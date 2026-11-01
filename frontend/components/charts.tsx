@@ -55,7 +55,7 @@ export function ActivityChart({ rows }: { rows: Tx[] }) {
             axisLine={false}
             fontSize={11}
           />
-          <Tooltip contentStyle={tip} />
+          <Tooltip contentStyle={tip} isAnimationActive={false} cursor={{ stroke: "var(--line-strong)" }} />
           <Area
             type="monotone"
             dataKey="transactions"

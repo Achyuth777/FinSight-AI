@@ -12,7 +12,7 @@ const args = process.argv.slice(2);
 const arg = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
 const base = arg("--base", "http://127.0.0.1:3000");
 const shots = arg("--shots", "");
-const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models
+const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models | motion
 if (shots) mkdirSync(shots, { recursive: true });
 
 const sections = ["overview", "transactions", "investigations", "network", "laboratory", "monitoring", "assistant"];
@@ -58,6 +58,96 @@ async function overflowChecks(browser) {
       const status = response ? response.status() : 0;
       record(`overflow ${route} @${width}`, status < 400 && scroll <= client, `HTTP ${status}, scrollWidth ${scroll} vs ${client}`);
     }
+    await context.close();
+  }
+}
+
+// Motion: sheets survive rapid toggling, keyboard opens skip animation, reduced motion keeps no movement, no stuck overlay.
+async function motionChecks(browser) {
+  const visit = async (width, height, reducedMotion = "no-preference") => {
+    const context = await browser.newContext({ viewport: { width, height }, reducedMotion });
+    const page = await context.newPage();
+    await page.goto(base + "/app/transactions", { waitUntil: "networkidle" });
+    await page.locator(".id-button").first().waitFor();
+    return { context, page };
+  };
+  const pressTransform = async (page) => {
+    const button = page.locator(".button:not(:disabled)").first();
+    const box = await button.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.waitForTimeout(250);
+    const value = await button.evaluate((el) => getComputedStyle(el).transform);
+    await page.mouse.up();
+    return value;
+  };
+  const settled = (page) => page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
+  for (const [width, height] of [[1024, 768], [390, 844]]) {
+    const { context, page } = await visit(width, height);
+    const opener = page.locator(".id-button").first();
+    await opener.focus();
+    for (let i = 0; i < 8; i++) {
+      await page.keyboard.press("Enter");
+      await page.getByRole("dialog").first().waitFor();
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(60); // a fast human cadence; history.back() settles within a frame
+    }
+    await page.waitForTimeout(300);
+    record(`motion: 8 rapid keyboard open/close cycles leave no sheet or overlay @${width}`, (await page.locator(".dialog-overlay, [role=dialog]").count()) === 0);
+    record(`motion: focus returns to the row button after rapid cycles @${width}`, await page.evaluate(() => document.activeElement?.classList.contains("id-button")));
+    await opener.click();
+    await page.getByRole("dialog").waitFor();
+    await page.keyboard.press("Escape");
+    await page.locator(".dialog-overlay").waitFor({ state: "detached" });
+    for (let i = 0; i < 5; i++) {
+      await opener.click({ force: true });
+      await page.getByRole("dialog").first().waitFor();
+      await page.keyboard.press("Escape");
+      await page.waitForTimeout(60); // a fast human cadence; history.back() settles within a frame
+    }
+    await page.waitForTimeout(300);
+    record(`motion: 5 rapid pointer open/close cycles leave no overlay @${width}`, (await page.locator(".dialog-overlay").count()) === 0);
+    await opener.click();
+    await page.getByRole("dialog").waitFor();
+    await settled(page);
+    record(`motion: sheet rests at its final position and full opacity @${width}`, await page.evaluate(() => { const s = getComputedStyle(document.querySelector(".sheet")); return s.opacity === "1" && (s.transform === "none" || s.transform === "matrix(1, 0, 0, 1, 0, 0)"); }));
+    record(`motion: no horizontal overflow with sheet open @${width}`, await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    await context.close();
+  }
+  {
+    const { context, page } = await visit(1024, 768);
+    record("motion: a pressed button scales to 0.97", (await pressTransform(page)) === "matrix(0.97, 0, 0, 0.97, 0, 0)");
+    const opener = page.locator(".id-button").first();
+    await opener.focus();
+    await page.keyboard.press("Enter");
+    await page.getByRole("dialog").waitFor();
+    const keyboardMs = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".sheet")).animationDuration) * 1000);
+    await page.keyboard.press("Escape");
+    await page.locator(".dialog-overlay").waitFor({ state: "detached" });
+    await opener.click();
+    await page.getByRole("dialog").waitFor();
+    const pointerMs = await page.evaluate(() => parseFloat(getComputedStyle(document.querySelector(".sheet")).animationDuration) * 1000);
+    record("motion: keyboard open is effectively instant, pointer open eases in", keyboardMs <= 1 && pointerMs >= 150 && pointerMs <= 200, `keyboard ${keyboardMs}ms, pointer ${pointerMs}ms`);
+    await context.close();
+  }
+  {
+    const { context, page } = await visit(1024, 768, "reduce");
+    await page.locator(".id-button").first().click();
+    await page.getByRole("dialog").waitFor();
+    const names = await page.evaluate(() => document.getAnimations().map((a) => a.animationName || "").filter(Boolean));
+    record("motion: reduced motion keeps fades and drops sheet travel", names.length > 0 && names.every((n) => n.startsWith("fade")), names.join(","));
+    await page.keyboard.press("Escape");
+    await page.locator(".dialog-overlay").waitFor({ state: "detached" });
+    record("motion: reduced motion still unmounts the sheet after closing", (await page.getByRole("dialog").count()) === 0);
+    record("motion: reduced motion drops press scale", (await pressTransform(page)) === "none");
+    await context.close();
+  }
+  {
+    const { context, page } = await visit(1440, 900);
+    await page.goto(base + "/app/overview", { waitUntil: "networkidle" });
+    await page.waitForTimeout(600);
+    const looping = await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations === Infinity).length);
+    record("motion: no looping animation on a settled overview", looping === 0, `${looping} looping`);
     await context.close();
   }
 }
@@ -220,6 +310,7 @@ async function transactionChecks(browser) {
     record("transactions: phone cards do not overflow @390", await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
     await page.locator(".id-button").first().click();
     await page.getByRole("dialog").waitFor();
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
     const box = await page.locator(".drawer-actions").first().boundingBox();
     record("transactions: phone sheet keeps its action visible", !!box && box.y + box.height <= 844);
     await context.close();
@@ -384,6 +475,7 @@ if (!only || only === "routes") await routeChecks(browser);
 if (!only || only === "explore") await exploreChecks(browser);
 if (!only || only === "states") await stateChecks(browser);
 if (!only || only === "models") await modelChecks(browser);
+if (!only || only === "motion") await motionChecks(browser);
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

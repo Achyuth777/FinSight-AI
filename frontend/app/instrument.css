@@ -56,8 +56,6 @@
 .pagination .button{min-height:36px}
 
 /* Sheet: right-hand on tablets */
-.sheet{animation:sheet-in .18s cubic-bezier(.2,0,0,1)}
-@keyframes sheet-in{from{transform:translateX(12px);opacity:0}to{transform:none;opacity:1}}
 .dialog-overlay{background:#05080def;backdrop-filter:none}
 
 /* Phones: rows become cards, sheet rises from the bottom */
@@ -88,13 +86,12 @@
   .tx-table .skeleton-row td:nth-child(n+3){display:none}
   .pagination{padding:14px}
   .pagination>div{flex:1;justify-content:flex-end}
-  .drawer.sheet{top:auto;left:0;right:0;bottom:0;width:100%;height:92dvh;max-height:92dvh;border-left:0;border-top:1px solid var(--line-strong);border-radius:12px 12px 0 0;padding:20px 16px;animation:sheet-up .18s cubic-bezier(.2,0,0,1)}
+  .drawer.sheet{top:auto;left:0;right:0;bottom:0;width:100%;height:92dvh;max-height:92dvh;border-left:0;border-top:1px solid var(--line-strong);border-radius:12px 12px 0 0;padding:20px 16px}
   .sheet .drawer-actions{bottom:0;margin:auto -16px -20px;padding:14px 16px 20px}
   .button,.icon-button,.field input,.field select{min-height:44px}
   .icon-button{min-width:44px}
 }
-@keyframes sheet-up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
-@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+
 
 /* Narrow desktop: filters wrap */
 @media (min-width:720px) and (max-width:1099px){
@@ -179,3 +176,44 @@
 @media (max-width:1099px){.research-layout{grid-template-columns:minmax(0,1fr)}}
 @media (max-width:719px){.search-form{flex-direction:column;align-items:stretch}.source{grid-template-columns:minmax(0,1fr)}.source small{grid-column:1;grid-row:auto;justify-self:start}}
 .network-canvas svg{max-width:720px;margin:0 auto}
+
+/* Motion. Only transform and opacity move. Frequent actions (row selection, filters, paging, hover) are instant. */
+:root{--ease-out:cubic-bezier(.23,1,.32,1)}
+html:has(.app-shell){scroll-behavior:auto}
+.button:active:not(:disabled),.icon-button:active,.suggestions button:active:not(:disabled){transform:scale(.97)}
+.icon-button{transition:transform .12s var(--ease-out),background-color .12s ease,color .12s ease}
+.stat.is-link,.case-item,.source{transition:background-color .12s ease,border-color .12s ease}
+.field input,.field select,.field textarea,.search-input{transition:border-color .12s ease}
+
+/* Sheet and overlay: enter 180ms, exit 120ms, ease-out. Radix keeps the node mounted until the exit finishes. */
+.sheet[data-state=open]{animation:sheet-in .18s var(--ease-out)}
+.sheet[data-state=closed]{animation:sheet-out .12s var(--ease-out) forwards}
+.dialog-overlay[data-state=open]{animation:fade-in .16s ease-out}
+.dialog-overlay[data-state=closed]{animation:fade-out .12s ease-out forwards}
+@keyframes sheet-in{from{transform:translateX(16px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sheet-out{to{transform:translateX(16px);opacity:0}}
+@keyframes sheet-up{from{transform:translateY(24px);opacity:0}to{transform:none;opacity:1}}
+@keyframes sheet-down{to{transform:translateY(24px);opacity:0}}
+@keyframes fade-in{from{opacity:0}to{opacity:1}}
+@keyframes fade-out{to{opacity:0}}
+@media (max-width:719px){
+  .sheet[data-state=open]{animation-name:sheet-up}
+  .sheet[data-state=closed]{animation-name:sheet-down}
+}
+/* Keyboard-initiated opens and closes are not animated: they repeat hundreds of times a day. */
+html[data-input=keyboard] .sheet,html[data-input=keyboard] .dialog-overlay{animation-duration:1ms}
+
+/* Feedback that appears: fade in once, no movement, no layout animation. Does not replay on rerender. */
+.notice,.saved,.field-error,.tx-missing{transition:opacity .15s ease;@starting-style{opacity:0}}
+
+/* Loading: a slow opacity pulse on skeletons only. */
+.skeleton{animation:skeleton-pulse 1.4s ease-in-out infinite}
+@keyframes skeleton-pulse{50%{opacity:.45}}
+
+/* Reduced motion: no movement, keep opacity and colour. */
+@media (prefers-reduced-motion:reduce){
+  .button:active:not(:disabled),.icon-button:active,.suggestions button:active:not(:disabled){transform:none}
+  .sheet[data-state=open],.sheet[data-state=closed]{animation-name:fade-in}
+  .sheet[data-state=closed]{animation-name:fade-out}
+  .skeleton{animation:none}
+}

@@ -86,9 +86,9 @@ h4 {
 a,
 button {
   transition:
-    background 0.18s,
-    color 0.18s,
-    border-color 0.18s;
+    background-color 0.12s ease,
+    color 0.12s ease,
+    border-color 0.12s ease;
 }
 button:disabled,
 .disabled {
@@ -363,7 +363,6 @@ input[type="checkbox"] {
 }
 .signal-path {
   stroke-dasharray: 7 6;
-  animation: signal 18s linear infinite;
 }
 @keyframes signal {
   to {
@@ -1268,7 +1267,7 @@ td small {
   color: #d7eccb;
 }
 .spin {
-  animation: spin 1.2s linear infinite;
+  animation: spin 0.8s linear infinite;
 }
 @keyframes spin {
   to {
@@ -2051,7 +2050,7 @@ td small {
     transform: translateX(-100%);
     width: 220px;
     top: 68px;
-    transition: transform 0.2s;
+    transition: transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   }
   .sidebar.is-open {
     transform: translateX(0);
@@ -2405,15 +2404,13 @@ td small {
     padding: 25px 22px;
   }
 }
+/* Reduced motion removes movement but keeps colour and opacity feedback; see instrument.css for the rest. */
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
   }
-  *,
-  *::before,
-  *::after {
-    animation: none !important;
-    transition: none !important;
+  .sidebar {
+    transition: none;
   }
 }
 /* Evidence readability refinements from source review. */

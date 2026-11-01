@@ -2,8 +2,7 @@
 /* FinSight Obsidian — graphite interface with disciplined lime accents. */
 body{background:var(--bg);color:var(--text);font-size:14px;letter-spacing:-.008em}
 ::selection{background:#d5f78b;color:#101419}
-.button{border-radius:9px;min-height:42px;gap:11px;font-size:13px;letter-spacing:-.01em;transition:transform .2s ease,background .2s,border-color .2s,color .2s}
-.button:hover:not(:disabled){transform:translateY(-1px)}
+.button{border-radius:9px;min-height:42px;gap:11px;font-size:13px;letter-spacing:-.01em;transition:transform .12s cubic-bezier(.23,1,.32,1),background-color .12s ease,border-color .12s ease,color .12s ease}
 .button.primary,.primary{background:var(--accent);color:#11161d}
 .button.primary:hover,.primary:hover{background:#e4ffab}
 .button.outline,.outline{border:1px solid #454e5a;color:#f0f2f6;background:#ffffff03}
@@ -48,7 +47,7 @@ body{background:var(--bg);color:var(--text);font-size:14px;letter-spacing:-.008e
 .graph-corner{position:absolute;top:14px;left:15px;z-index:1;font-size:9px;color:#92a1b0;letter-spacing:1.1px}
 .graph-corner span{color:var(--accent)}
 .preview-graph svg{width:100%;height:100%;position:relative;display:block;padding:18px 22px 0}
-.preview-edge-active{animation:signal 16s linear infinite}
+.preview-edge-active{animation:none}
 .graph-float-label{display:flex;align-items:center;gap:6px;position:absolute;right:13px;bottom:11px;color:#c5cbd2;font-size:9px;letter-spacing:.3px;background:#131820e8;border:1px solid #35404a;padding:7px 10px;border-radius:6px}
 .graph-float-label svg{padding:0;width:12px;height:12px;color:var(--accent)}
 .graph-float-label strong{color:var(--accent);font-size:9px;margin-left:5px}
@@ -71,8 +70,8 @@ body{background:var(--bg);color:var(--text);font-size:14px;letter-spacing:-.008e
 .section-intro h2,.method-section h2{font-size:clamp(35px,3.2vw,52px);letter-spacing:-2px;font-weight:570}
 .section-intro > p{font-size:15px;line-height:1.75;color:#aab5c5}
 .capabilities{gap:15px;margin-top:43px}
-.capability{background:#171c24;border:1px solid #303842;border-radius:13px;transition:background .25s,border-color .25s,transform .25s}
-.capability:hover{transform:translateY(-5px);border-color:#697a91;background:#1d242c}
+.capability{background:#171c24;border:1px solid #303842;border-radius:13px;transition:background-color .15s ease,border-color .15s ease}
+.capability:hover{border-color:#697a91;background:#1d242c}
 .capability-icon{color:var(--accent);height:90px}
 .capability-icon span{color:#788696}
 .capability h3{font-weight:570;color:#edf1f6;font-size:23px}

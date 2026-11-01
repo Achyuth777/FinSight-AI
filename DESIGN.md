@@ -102,10 +102,12 @@ No horizontal page scroll at 360px. Wide tables scroll inside `.table-scroll`, n
 
 ## 8. Motion
 
-- Durations: 120ms for hover and focus, 180ms for panels and sheets. Easing `cubic-bezier(.2,0,0,1)` on enter, linear for spinners.
-- Only opacity and transform animate. Nothing animates when it would delay access to data: tables never fade in row by row.
-- `prefers-reduced-motion: reduce` removes transforms and keeps only instant state changes.
-- No parallax, no looping decorative motion, no count-up numbers.
+- Token: `--ease-out: cubic-bezier(.23,1,.32,1)` for everything that enters, exits or responds to a press. Spinners are linear (0.8s). Hover and focus colour changes are 120ms `ease`.
+- Budget: press feedback `scale(.97)` at 120ms; evidence sheet 180ms in and 120ms out (it is occasional, not constant); overlay fade 160ms in and 120ms out. Feedback messages fade in over 150ms with no movement.
+- Frequent actions are instant: row selection, the docked evidence pane, filters, sorting, paging, hover on rows and list items, and the skeleton-to-table swap. Keyboard-initiated sheet opens and closes are effectively instant (`html[data-input=keyboard]`, set by `useInputMode`).
+- Only opacity and transform animate. Sheets use `data-state` so Radix keeps them mounted for the exit; `@starting-style` handles one-off fades so nothing replays on rerender.
+- `prefers-reduced-motion: reduce` removes travel and press scale and keeps opacity fades and colour feedback. The spinner still turns because it signals progress.
+- No parallax, no looping decorative motion (the hero dash loops were removed), no hover lift, no count-up numbers, no chart tooltip travel.
 
 ## 9. Conflict resolution between design skills
 
