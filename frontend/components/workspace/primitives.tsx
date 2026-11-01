@@ -2,16 +2,30 @@ import { Info } from "lucide-react";
 import type { Tx, Metrics } from "../types";
 import { pct } from "./format";
 
-export function Score({ tx }: { tx: Tx }) {
+// Percentile ruler: a 0-100 track, one tick at the lowest flagged percentile, one fill to this row's percentile.
+// It ranks the row against training scores; it is not a probability.
+export function Ruler({ p, threshold }: { p: number; threshold?: number }) {
   return (
     <span
-      className={
-        "score " +
-        (tx.risk_score >= 95 ? "high" : tx.risk_score >= 80 ? "medium" : "low")
+      className="ruler"
+      role="img"
+      aria-label={
+        "Anomaly percentile " +
+        p.toFixed(1) +
+        (threshold != null ? ", lowest flagged percentile " + threshold.toFixed(1) : "")
       }
     >
-      <i />
-      {tx.risk_score.toFixed(1)}
+      {threshold != null && <i className="ruler-th" style={{ left: threshold + "%" }} />}
+      <i className="ruler-fill" style={{ width: p + "%" }} />
+    </span>
+  );
+}
+
+export function Score({ tx, threshold }: { tx: Tx; threshold?: number }) {
+  return (
+    <span className="score">
+      <span className="num">{tx.risk_score.toFixed(1)}</span>
+      <Ruler p={tx.risk_score} threshold={threshold} />
     </span>
   );
 }

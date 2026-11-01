@@ -1,0 +1,172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction B: Instrument (preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Direction B: Instrument. Dark graphite, dense, mono figures, one 1px accent line for every selection. */
+:root{
+  --ground:#0b0e13; --surface:#12161d; --raised:#1a1f28; --border:#232a35; --rule:#1a1f28; --control:#364050;
+  --text:#eef1f6; --muted:#97a1b1;
+  --accent:#d5f78b;          /* selection line and the percentile mark only */
+  --flag-ink:#e6bb5c; --flag-bg:#2a2314;
+  --case-ink:#8fc3dc; --case-bg:#14252d;
+  --clear-ink:#aab3c2; --clear-bg:#1a1f28;
+  --bad:#ff7a7a;
+  --r:6px; --gap:16px; --pad:20px;
+  --sans:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--ground);color:var(--text);font:400 13px/1.45 var(--sans)}
+.num,.id,td small{font-family:var(--mono)}
+.num{font-variant-numeric:tabular-nums}
+button,a{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.banner{background:var(--accent);color:#11161d;font-size:12px;font-weight:500;padding:5px var(--pad)}
+.app{display:grid;grid-template-columns:56px minmax(0,1fr);min-height:calc(100vh - 27px)}
+/* icon rail: unlabelled, tooltips via title + aria-label */
+.rail{border-right:1px solid var(--border);display:flex;flex-direction:column;align-items:center;padding:14px 0;gap:4px}
+.mark{width:26px;height:26px;border:2px solid var(--text);border-radius:6px;position:relative;margin-bottom:14px}
+.mark:after{content:"";position:absolute;left:3px;right:3px;top:50%;height:2px;background:var(--accent);transform:translateY(-50%)}
+.rail a{width:40px;height:36px;display:grid;place-items:center;color:var(--muted);text-decoration:none;position:relative;border-radius:6px}
+.rail a:hover{color:var(--text)}
+.rail a[aria-current]{color:var(--text)}
+.rail a[aria-current]:before{content:"";position:absolute;left:-8px;top:8px;bottom:8px;width:1px;background:var(--accent)}
+.rail hr{width:20px;border:0;border-top:1px solid var(--border);margin:8px 0}
+.rail svg{width:17px;height:17px;stroke:currentColor;fill:none;stroke-width:1.5}
+.rail .sp{flex:1}
+.bottombar{display:none}
+.col{min-width:0;display:flex;flex-direction:column}
+.top{height:48px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 var(--pad);gap:12px}
+.crumb{display:flex;align-items:center;gap:8px;color:var(--muted)}
+h1{margin:0;font-size:15px;font-weight:600;color:var(--text)}
+.top-r{display:flex;gap:8px;align-items:center}
+.btn-primary{background:var(--text);color:#11161d;border:0;border-radius:var(--r);height:30px;padding:0 12px;font-weight:600;cursor:pointer}
+.btn-sec{background:transparent;border:1px solid var(--control);border-radius:var(--r);height:30px;padding:0 12px;display:inline-flex;align-items:center;text-decoration:none;cursor:pointer}
+.btn-ghost{background:transparent;border:1px solid var(--control);color:var(--text);border-radius:var(--r);height:30px;padding:0 12px;cursor:pointer}
+/* context strip: one row */
+.ctx{display:flex;flex-wrap:wrap;align-items:center;gap:6px 24px;padding:9px var(--pad);border-bottom:1px solid var(--border);background:var(--surface)}
+.ctx-name{display:flex;gap:8px;align-items:center;font-weight:600}
+.ctx-name b{font:500 10.5px var(--mono);letter-spacing:.04em;padding:1px 6px;border:1px solid var(--accent);color:var(--accent);border-radius:3px}
+.ctx dl{display:flex;flex-wrap:wrap;gap:4px 24px;margin:0;flex:1}
+.ctx dl div{display:flex;gap:8px;align-items:baseline}
+.ctx dt{color:var(--muted);font-size:12px} .ctx dd{margin:0;font-family:var(--mono);font-size:12px}
+.ctx-link{font-size:12px;color:var(--text)}
+.note-line{padding:7px var(--pad);color:var(--muted);font-size:12px;border-bottom:1px solid var(--border)}
+.note-line b{color:var(--text);font-weight:500}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 400px;flex:1;min-height:0}
+.left{min-width:0;border-right:1px solid var(--border)}
+.sec{padding:14px var(--pad);border-bottom:1px solid var(--border)}
+.sec h2{margin:0 0 2px;font-size:13px;font-weight:600}
+.sec .sub{color:var(--muted);font-size:12px}
+/* percentile ruler as a full-width axis */
+.tiers{margin-top:12px}
+.tier-bar{display:flex;height:6px;background:var(--raised)}
+.tier{height:100%;background:var(--control);border-right:1px solid var(--ground)} .tier-80{background:#5a6a80} .tier-95{background:var(--accent)}
+.tier-list{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:4px 24px}
+.tier-list li{display:flex;gap:8px;align-items:center;color:var(--muted)} .tier-list b{color:var(--text);font-weight:500}
+.sw{width:8px;height:8px;background:var(--control);display:inline-block}.sw.tier-80{background:#5a6a80}.sw.tier-95{background:var(--accent)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;padding:10px var(--pad);border-bottom:1px solid var(--border)}
+.tools input,.tools select{height:30px;border:1px solid var(--control);border-radius:var(--r);padding:0 10px;background:var(--ground);color:var(--text);font:inherit}
+.tools input{width:260px;max-width:100%}
+.total{margin-left:auto;align-self:center;color:var(--muted);font-size:12px}
+table{width:100%;border-collapse:collapse}
+th{font-weight:400;font-size:12px;color:var(--muted);text-align:left;padding:7px var(--pad);border-bottom:1px solid var(--border)}
+td{padding:6px var(--pad);height:42px;border-bottom:1px solid var(--rule);vertical-align:middle}
+td small{display:block;color:var(--muted);font-size:11px}
+th.r,td.num,td.pct{text-align:right}
+td.num{font-size:12.5px}
+td.pct{white-space:nowrap}
+td.pct .num{display:inline-block;min-width:38px;margin-right:10px;font-size:12.5px}
+tr:hover td{background:#0f131a}
+tr.is-selected td{background:#0f141b;box-shadow:inset 0 1px 0 var(--accent-dim,#4a5b2a),inset 0 -1px 0 #4a5b2a}
+tr.is-selected td:first-child{box-shadow:inset 1px 0 0 var(--accent),inset 0 1px 0 #4a5b2a,inset 0 -1px 0 #4a5b2a}
+.id{background:none;border:0;padding:0;font-size:12.5px;font-weight:500;cursor:pointer;color:var(--text)}
+.tag{display:inline-block;font-size:11.5px;font-weight:500;padding:2px 7px;border-radius:3px;white-space:nowrap;flex:none}
+.tag-flag{background:var(--flag-bg);color:var(--flag-ink)} .tag-case{background:var(--case-bg);color:var(--case-ink)} .tag-clear{background:var(--clear-bg);color:var(--clear-ink)}
+.ruler{position:relative;display:inline-block;width:96px;height:3px;background:var(--raised);vertical-align:middle}
+.ruler-fill{position:absolute;left:0;top:0;bottom:0;background:var(--accent)}
+.ruler-th{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--muted);z-index:1}
+.ruler-lg{width:100%;height:4px;margin:12px 0 4px}
+/* drawer: docked pane */
+.drawer{background:var(--surface);min-width:0}
+.drawer>*{padding-left:var(--pad);padding-right:var(--pad)}
+.dr-head{padding-top:16px;display:flex;justify-content:space-between;gap:12px}
+.dr-head h2{margin:0;font:500 15px var(--mono)} .dr-head p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.x{background:none;border:0;font-size:20px;line-height:1;height:28px;width:28px;cursor:pointer;color:var(--muted);border-radius:4px}.x:hover{background:var(--raised)}
+.dr-score{padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.lbl{display:block;color:var(--muted);font-size:12px}
+.dr-score strong{font:500 34px/1.1 var(--mono);letter-spacing:-.02em}
+.dr-score p,.note{color:var(--muted);font-size:12px;margin:6px 0 0}
+.dr-sec{padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--border)} .dr-sec h3{margin:0;font-size:13px;font-weight:600} .dr-sec p{margin:6px 0 0;font-size:12.5px}
+.dev{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:11px}
+.dev li{display:grid;grid-template-columns:1fr 80px 32px;gap:10px;align-items:center}
+.dev small{display:block;color:var(--muted);font-size:11px}
+.devbar{height:3px;background:var(--raised);position:relative}.devbar i{position:absolute;inset:0 auto 0 0;background:var(--accent)}
+.dev b{text-align:right;font-weight:500;font-size:12px}
+.dr-act{padding-top:14px;padding-bottom:16px;display:flex;gap:8px;flex-wrap:wrap}
+.cards{display:none;list-style:none;margin:0;padding:0}
+@media(max-width:1100px){.work{grid-template-columns:minmax(0,1fr)}.left{border-right:0}.drawer{border-top:1px solid var(--border)}}
+@media(max-width:760px){
+  .app{grid-template-columns:1fr}.rail{display:none}
+  .bottombar{display:flex;position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);z-index:5}
+  .bottombar a{flex:1;text-align:center;padding:8px 2px 10px;font-size:11px;color:var(--muted);text-decoration:none}
+  .bottombar a[aria-current]{color:var(--text);box-shadow:inset 0 1px 0 var(--accent)}
+  .top .btn-primary{display:none}
+  :root{--pad:16px}
+  .ctx dl{gap:4px 16px}
+  table{display:none}.cards{display:block}
+  .txcard{padding:10px var(--pad);border-bottom:1px solid var(--rule)} .txcard.is-selected{background:#0f141b;box-shadow:inset 1px 0 0 var(--accent)}
+  .txcard-top{display:flex;justify-content:space-between;align-items:baseline} .txcard-mid{color:var(--muted);font-size:12px;margin:2px 0 8px}
+  .txcard-bot{display:flex;align-items:center;gap:10px} .txcard-bot .tag{margin-left:auto}
+  .tools input{width:100%}.total{margin-left:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="banner">Design preview: Direction B, Instrument. Static sample content for layout only. Not connected to the product.</div>
+<div class="app">
+  <nav class="rail" aria-label="Primary">
+    <span class="mark" aria-hidden="true"></span>
+    <a href="#" title="Overview" aria-label="Overview"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6" height="6"/><rect x="14" y="4" width="6" height="6"/><rect x="4" y="14" width="6" height="6"/><rect x="14" y="14" width="6" height="6"/></svg></a>
+    <a href="#" title="Transactions" aria-label="Transactions" aria-current="page"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></svg></a>
+    <a href="#" title="Investigations" aria-label="Investigations"><svg viewBox="0 0 24 24"><path d="M6 3h9l4 4v14H6z"/><path d="M9 12h7M9 16h5"/></svg></a>
+    <hr>
+    <a href="#" title="Linked accounts" aria-label="Linked accounts"><svg viewBox="0 0 24 24"><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="6" r="2.5"/><circle cx="18" cy="18" r="2.5"/><path d="M8.3 11l7.4-3.8M8.3 13l7.4 3.8"/></svg></a>
+    <a href="#" title="Evidence search" aria-label="Evidence search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M16 16l4 4"/></svg></a>
+    <hr>
+    <a href="#" title="Experiments" aria-label="Experiments"><svg viewBox="0 0 24 24"><path d="M9 3h6M10 3v6l-5 9a2 2 0 002 3h10a2 2 0 002-3l-5-9V3"/></svg></a>
+    <a href="#" title="Data checks" aria-label="Data checks"><svg viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg></a>
+  </nav>
+  <div class="col">
+    <header class="top">
+      <div class="crumb">FinSight <span aria-hidden="true">/</span> <h1>Transactions</h1></div>
+      <div class="top-r"><button class="btn-ghost" type="button">Import CSV</button></div>
+    </header>
+    <div id="ctx"></div>
+    <div class="note-line"><b>75 of 1,200 rows</b> flagged for review (6.3%). Batch analysis; scores are anomaly percentiles, not fraud probabilities. No payments are made.</div>
+    <div class="work">
+      <div class="left">
+        <section class="sec"><h2>Rows by anomaly percentile</h2><span class="sub">Band edges at the 80th and 95th percentile</span><div id="tiers"></div></section>
+        <div class="tools"><input type="search" placeholder="Search transaction, account, merchant" aria-label="Search"><select aria-label="Review"><option>All rows</option><option>Flagged only</option></select><select aria-label="Sort"><option>Anomaly percentile</option></select><span class="total">Showing 8 of 75 flagged</span></div>
+        <table><thead><tr><th>Transaction</th><th>Merchant</th><th class="r">Amount</th><th class="r">Anomaly percentile</th><th>Review</th></tr></thead><tbody id="rows"></tbody></table>
+        <ul class="cards" id="cards"></ul>
+      </div>
+      <aside class="drawer" aria-labelledby="dr-title" id="drawer"></aside>
+    </div>
+  </div>
+</div>
+<nav class="bottombar" aria-label="Primary mobile"><a href="#">Overview</a><a href="#" aria-current="page">Transactions</a><a href="#">Cases</a><a href="#">Linked</a><a href="#">More</a></nav>
+<script src="shared.js"></script>
+<script>
+document.getElementById("ctx").innerHTML=FSR.context();
+document.getElementById("tiers").innerHTML=FSR.tiers();
+document.getElementById("rows").innerHTML=FSR.rows();
+document.getElementById("cards").innerHTML=FSR.cards();
+document.getElementById("drawer").innerHTML=FSR.drawer();
+</script>
+</body>
+</html>

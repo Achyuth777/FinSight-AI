@@ -16,8 +16,15 @@
   --cyan: #94c8dc;
   --purple: #beb7f6;
   --amber: #e2b659;
-  --radius: 13px;
-  font-family: Inter, "Segoe UI", Arial, Helvetica, sans-serif;
+  --radius: 8px;
+  --flag-ink: #e6bb5c;
+  --flag-bg: #2a2314;
+  --case-ink: #8fc3dc;
+  --case-bg: #14252d;
+  --clear-ink: #aab3c2;
+  --clear-bg: #1a1f28;
+  font-family: var(--font-sans), "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-mono-stack: var(--font-mono), ui-monospace, Consolas, monospace;
   color-scheme: dark;
 }
 * {
@@ -1120,7 +1127,7 @@ td small {
   font-variant-numeric: tabular-nums;
   font-size: 11px;
 }
-.score i {
+.score > i {
   width: 5px;
   height: 5px;
   border-radius: 50%;

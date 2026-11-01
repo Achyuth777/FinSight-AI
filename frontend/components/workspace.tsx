@@ -250,6 +250,9 @@ export default function Workspace({ section }: { section: string }) {
   const flagged = rows.filter((t) => t.flagged),
     high = [...rows].sort((a, b) => b.risk_score - a.risk_score),
     activeCase = cases.find((c) => c.id === caseId) || cases[0];
+  const flagFloor = flagged.length
+    ? Math.min(...flagged.map((t) => t.risk_score))
+    : undefined;
   const chartRows =
     range === "test" ? rows.filter((t) => t.split === "test") : rows;
   const activeEntity = entity || high[0]?.account_id;
@@ -294,7 +297,7 @@ export default function Workspace({ section }: { section: string }) {
                 <td>{t.merchant}</td>
                 <td className="mono">{money(t.amount)}</td>
                 <td>
-                  <Score tx={t} />
+                  <Score tx={t} threshold={flagFloor} />
                 </td>
                 <td>
                   <span className={"pill " + (t.flagged ? "amber" : "")}>
@@ -814,7 +817,7 @@ export default function Workspace({ section }: { section: string }) {
                 >
                   <div className="case-content">
                     <div className="case-summary">
-                      <Score tx={activeCase.transaction} />
+                      <Score tx={activeCase.transaction} threshold={flagFloor} />
                       <span>{money(activeCase.transaction.amount)}</span>
                       <span>{activeCase.transaction.merchant}</span>
                     </div>
@@ -1570,7 +1573,7 @@ export default function Workspace({ section }: { section: string }) {
                 </Dialog.Description>
                 <div className="drawer-amount">
                   {money(selected.amount)}
-                  <Score tx={selected} />
+                  <Score tx={selected} threshold={flagFloor} />
                 </div>
                 <div className="notice">
                   <Info size={17} />

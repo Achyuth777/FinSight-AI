@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Direction A: Ledger (preview)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500&display=swap" rel="stylesheet">
+<style>
+/* Direction A: Ledger. Light, document-like, no chrome colour. Hue only on data. */
+:root{
+  --ground:#f2f4f7; --surface:#fff; --raised:#eceff3; --border:#dde1e7; --rule:#eef0f3; --control:#c9ced6;
+  --text:#0b0d10; --muted:#5b6370; --ink-strong:#0b0d10;
+  --data:#1d5fbf;            /* the one chart hue: percentile marks */
+  --flag-ink:#7a4a05; --flag-bg:#fdf3dc;      /* amber: needs review, not fraud */
+  --case-ink:#124b8f; --case-bg:#e6effa;      /* blue: under investigation */
+  --clear-ink:#3d4551; --clear-bg:#eceff3;    /* grey: reviewed or standard */
+  --bad:#b3261e;                              /* reserved: failed data checks, errors */
+  --r:8px; --r-sm:6px; --gap:16px; --pad:28px;
+  --sans:"Hanken Grotesk",system-ui,sans-serif; --serif:"Newsreader",Georgia,serif;
+}
+*{box-sizing:border-box} html,body{margin:0}
+body{background:var(--ground);color:var(--text);font:400 14px/1.45 var(--sans);font-variant-numeric:tabular-nums}
+.num{font-variant-numeric:tabular-nums;font-feature-settings:"tnum"}
+button,a{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--data);outline-offset:2px}
+.banner{background:#0b0d10;color:#fff;font-size:12px;padding:6px var(--pad)}
+.app{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:calc(100vh - 29px)}
+/* sidebar: labelled, on the ground, one rule */
+.side{padding:20px 12px;border-right:1px solid var(--border);display:flex;flex-direction:column;gap:22px}
+.brand{display:flex;align-items:center;gap:10px;padding:0 10px;font-weight:600;font-size:16px;letter-spacing:-.01em}
+.mark{width:22px;height:22px;border:2px solid var(--ink-strong);border-radius:6px;position:relative}
+.mark:after{content:"";position:absolute;left:3px;right:3px;top:50%;height:2px;background:var(--data);transform:translateY(-50%)}
+.group{display:flex;flex-direction:column;gap:2px}
+.group h2{margin:0 10px 6px;font-size:12px;font-weight:500;color:var(--muted)}
+.group a{padding:7px 10px;border-radius:var(--r-sm);text-decoration:none;color:var(--muted);display:flex;justify-content:space-between}
+.group a[aria-current]{background:var(--raised);color:var(--text);font-weight:500}
+.group a:hover{color:var(--text)}
+.cnt{font-size:12px;color:var(--text)}
+.side-foot{margin-top:auto;padding:0 10px;font-size:12px;color:var(--muted)}
+/* canvas */
+.main{padding:24px var(--pad) 40px;min-width:0}
+.titlerow{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:16px}
+h1{margin:0;font:500 30px/1.1 var(--serif);letter-spacing:-.01em}
+.finding{margin:6px 0 0;color:var(--muted);max-width:60ch}
+.finding b{color:var(--text);font-weight:600}
+.menu{display:none}
+.btn-primary{background:var(--ink-strong);color:#fff;border:0;border-radius:var(--r-sm);height:36px;padding:0 14px;font-weight:500;cursor:pointer}
+.btn-sec{background:var(--raised);border:0;border-radius:var(--r-sm);height:36px;padding:0 14px;display:inline-flex;align-items:center;text-decoration:none;cursor:pointer}
+.ctx{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;margin-bottom:var(--gap)}
+.ctx-name{font-weight:600;display:flex;gap:8px;align-items:center}
+.ctx-name b{font-size:11px;font-weight:600;padding:1px 6px;border:1px solid var(--control);border-radius:4px;color:var(--text)}
+.ctx dl{display:flex;flex-wrap:wrap;gap:8px 22px;margin:0;flex:1}
+.ctx dt{font-size:12px;color:var(--muted)} .ctx dd{margin:0}
+.ctx-link{font-size:13px}
+.work{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--gap);align-items:start}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--r)}
+.panel>header{padding:14px 16px 0;display:flex;justify-content:space-between;align-items:baseline}
+.panel h2{margin:0;font-size:16px;font-weight:600}
+.panel .sub{color:var(--muted);font-size:13px}
+.tiers{padding:12px 16px 16px}
+.tier-bar{display:flex;gap:2px;height:10px}
+.tier{border-radius:2px;background:var(--control)} .tier-80{background:#8fb0e0} .tier-95{background:var(--data)}
+.tier-list{list-style:none;margin:12px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:6px 28px}
+.tier-list li{display:flex;gap:8px;align-items:center;color:var(--muted)} .tier-list b{color:var(--text);font-weight:600}
+.sw{width:8px;height:8px;border-radius:2px;background:var(--control);display:inline-block}
+.sw.tier-80{background:#8fb0e0} .sw.tier-95{background:var(--data)}
+.tools{display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px}
+.tools input,.tools select{height:34px;border:1px solid var(--control);border-radius:var(--r-sm);padding:0 10px;background:#fff;font:inherit}
+.tools input{width:300px;max-width:100%}
+.total{margin-left:auto;align-self:center;color:var(--muted);font-size:13px}
+table{width:100%;border-collapse:collapse}
+tbody tr:last-child td{border-bottom:0}
+.panel[aria-label="Review queue"]{padding-bottom:8px}
+th{font-weight:400;font-size:12px;color:var(--muted);text-align:left;padding:8px 16px;border-bottom:1px solid var(--border)}
+td{padding:9px 16px;white-space:nowrap;border-bottom:1px solid var(--rule);vertical-align:middle}
+td small{display:block;color:var(--muted);font-size:12px;white-space:nowrap}
+th.r,td.num,td.pct{text-align:right}
+td.pct{white-space:nowrap}
+td.pct .num{display:inline-block;min-width:38px;margin-right:10px;font-weight:500}
+tr.is-selected td{background:#f4f8fe;box-shadow:inset 0 1px 0 #b8cdee,inset 0 -1px 0 #b8cdee}
+.id{background:none;border:0;padding:0;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px;text-decoration-color:var(--control)}
+.tag{display:inline-block;font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px;white-space:nowrap;flex:none}
+.tag-flag{background:var(--flag-bg);color:var(--flag-ink)} .tag-case{background:var(--case-bg);color:var(--case-ink)} .tag-clear{background:var(--clear-bg);color:var(--clear-ink)}
+/* percentile ruler */
+.ruler{position:relative;display:inline-block;width:96px;height:4px;background:var(--raised);border-radius:2px;vertical-align:middle}
+.ruler-fill{position:absolute;left:0;top:0;bottom:0;background:var(--data);border-radius:2px}
+.ruler-th{position:absolute;top:-4px;bottom:-4px;width:1px;background:var(--text);z-index:1}
+.ruler-lg{width:100%;height:6px;margin:10px 0 4px}
+/* drawer: docked right column */
+.drawer{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);position:sticky;top:16px}
+.drawer>*{padding-left:20px;padding-right:20px}
+.dr-head{padding-top:18px;display:flex;justify-content:space-between;gap:12px}
+.dr-head h2{margin:0;font-size:18px;font-weight:600} .dr-head p{margin:2px 0 0;color:var(--muted);font-size:12.5px}
+.x{background:none;border:0;font-size:22px;line-height:1;height:32px;width:32px;border-radius:6px;cursor:pointer;color:var(--muted)}
+.x:hover{background:var(--raised)}
+.dr-score{padding-top:16px;padding-bottom:16px;border-bottom:1px solid var(--rule)}
+.lbl{display:block;color:var(--muted);font-size:12px}
+.dr-score strong{font:500 40px/1.1 var(--serif);letter-spacing:-.01em}
+.dr-score p,.note{color:var(--muted);font-size:12.5px;margin:6px 0 0}
+.dr-sec{padding-top:14px;padding-bottom:14px;border-bottom:1px solid var(--rule)} .dr-sec h3{margin:0;font-size:14px;font-weight:600} .dr-sec p{margin:6px 0 0;font-size:13px}
+.dev{list-style:none;margin:10px 0 0;padding:0;display:flex;flex-direction:column;gap:12px}
+.dev li{display:grid;grid-template-columns:1fr 86px 34px;gap:10px;align-items:center}
+.dev small{display:block;color:var(--muted);font-size:12px}
+.devbar{height:4px;background:var(--raised);border-radius:2px;position:relative} .devbar i{position:absolute;inset:0 auto 0 0;background:var(--data);border-radius:2px}
+.dev b{text-align:right;font-weight:500}
+.dr-act{padding-top:16px;padding-bottom:18px;display:flex;gap:8px;flex-wrap:wrap}
+.cards{display:none;list-style:none;margin:0;padding:0}
+@media(max-width:1180px){.work{grid-template-columns:minmax(0,1fr)}.drawer{position:static}}
+@media(max-width:820px){
+  .app{grid-template-columns:1fr}.side{display:none}
+  .main{padding:16px 16px 32px}
+  .menu{display:inline-flex;align-items:center;height:36px;padding:0 12px;border:1px solid var(--control);border-radius:var(--r-sm);background:#fff}
+  .titlerow{flex-wrap:wrap} h1{font-size:26px}
+  .ctx dl{gap:8px 20px}
+  table{display:none}.cards{display:block}
+  .txcard{padding:12px 16px;border-top:1px solid var(--rule)} .txcard.is-selected{background:#f4f8fe}
+  .txcard-top{display:flex;justify-content:space-between} .txcard-mid{color:var(--muted);font-size:13px;margin:2px 0 8px}
+  .txcard-bot{display:flex;align-items:center;gap:10px} .txcard-bot .tag{margin-left:auto}
+  .tools input{width:100%}.total{margin-left:0;width:100%}
+}
+</style>
+</head>
+<body>
+<div class="banner">Design preview: Direction A, Ledger. Static sample content for layout only. Not connected to the product.</div>
+<div class="app">
+  <aside class="side" aria-label="Primary">
+    <div class="brand"><span class="mark" aria-hidden="true"></span>FinSight</div>
+    <nav class="group" aria-label="Work"><h2>Work</h2>
+      <a href="#">Overview</a><a href="#" aria-current="page">Transactions</a><a href="#">Investigations <span class="cnt">1</span></a></nav>
+    <nav class="group" aria-label="Explore"><h2>Explore</h2><a href="#">Linked accounts</a><a href="#">Evidence search</a></nav>
+    <nav class="group" aria-label="Model"><h2>Model</h2><a href="#">Experiments</a><a href="#">Data checks</a></nav>
+    <p class="side-foot">Single analyst · batch analysis<br>No payment actions</p>
+  </aside>
+  <main class="main">
+    <div class="titlerow">
+      <div><h1>Transactions</h1>
+        <p class="finding"><b>75 of 1,200 rows</b> are flagged for review (6.3%). Flagging is a percentile cut, not a confirmed fraud count.</p></div>
+      <button class="menu" type="button">Menu</button>
+      <button class="btn-primary" type="button">Import CSV</button>
+    </div>
+    <div id="ctx"></div>
+    <div class="work">
+      <div style="display:flex;flex-direction:column;gap:var(--gap);min-width:0">
+        <section class="panel"><header><h2>Rows by anomaly percentile</h2><span class="sub">Band edges at the 80th and 95th percentile</span></header><div id="tiers"></div></section>
+        <section class="panel" aria-label="Review queue">
+          <header><h2>Review queue</h2><span class="sub">Highest percentile first</span></header>
+          <div class="tools"><input type="search" placeholder="Search transaction, account, merchant" aria-label="Search"><select aria-label="Review"><option>All rows</option><option>Flagged only</option></select><select aria-label="Sort"><option>Anomaly percentile</option></select><span class="total">Showing 8 of 75 flagged</span></div>
+          <table><thead><tr><th>Transaction</th><th>Merchant</th><th class="r">Amount</th><th class="r">Anomaly percentile</th><th>Review</th></tr></thead><tbody id="rows"></tbody></table>
+          <ul class="cards" id="cards"></ul>
+        </section>
+      </div>
+      <aside class="drawer" aria-labelledby="dr-title" id="drawer"></aside>
+    </div>
+  </main>
+</div>
+<script src="shared.js"></script>
+<script>
+document.getElementById("ctx").innerHTML=FSR.context();
+document.getElementById("tiers").innerHTML=FSR.tiers();
+document.getElementById("rows").innerHTML=FSR.rows();
+document.getElementById("cards").innerHTML=FSR.cards();
+document.getElementById("drawer").innerHTML=FSR.drawer();
+</script>
+</body>
+</html>

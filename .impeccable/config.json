@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "cramped-padding",
+        "value": "*",
+        "files": [
+          "docs/refinement/directions/ledger.html"
+        ],
+        "createdAt": "2026-11-01T08:52:49.802Z",
+        "reason": "Claude: review-queue table intentionally bleeds to the card edge; every cell has 16px own padding and last-row rule removed. Preview file only, not user-confirmed."
+      }
+    ]
+  }
+}

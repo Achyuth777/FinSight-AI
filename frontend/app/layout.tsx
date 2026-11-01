@@ -1,6 +1,23 @@
 import "./globals.css";
 import "./obsidian.css";
 import type { Metadata } from "next";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+
+// Direction B (Instrument): Plex Sans for text, Plex Mono for figures and IDs.
+// next/font self-hosts both, so the running app makes no request to Google.
+const sans = IBM_Plex_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-sans",
+  display: "swap",
+});
+const mono = IBM_Plex_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-mono",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: "FinSight AI — See the signal.",
   description:
@@ -12,7 +29,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
+    <html lang="en" className={sans.variable + " " + mono.variable}>
       <body>{children}</body>
     </html>
   );
