@@ -1,0 +1,109 @@
+/* Instrument direction: shared UI components and the Transactions screen. See DESIGN.md. Loaded after obsidian.css. */
+
+/* Field: visible label above the control */
+.field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.field>label{font-size:12px;font-weight:500;color:var(--muted)}
+.field input,.field select{min-height:40px;font-size:13px;width:100%}
+.field-hint,.field-error{margin:0;font-size:12px;color:var(--muted)}
+.field-error{color:#f0b3a6}
+.field input[aria-invalid=true]{border-color:#795249}
+.notice-text{flex:1;min-width:0}
+
+/* Transactions: master/detail */
+.tx-layout{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+.tx-layout.has-pane{grid-template-columns:minmax(0,1fr) 400px}
+.tx-pane{position:sticky;top:16px;max-height:calc(100dvh - 32px);overflow-y:auto;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:20px;display:flex;flex-direction:column}
+.tx-pane .drawer-actions{position:sticky;bottom:0;margin:auto -20px -20px;padding:14px 20px 20px}
+.drawer .evidence-title,.evidence-title{font-size:18px;margin:0 0 6px;letter-spacing:-.01em;font-family:var(--font-mono-stack);font-weight:500;overflow-wrap:anywhere}
+.evidence-title:focus{outline:none}
+.evidence-title:focus-visible{outline:2px solid var(--accent);outline-offset:4px}
+.evidence-sub{margin:0 0 4px;font-size:13px;overflow-wrap:anywhere}
+.tx-pane .drawer-amount,.sheet .drawer-amount{font-size:26px;margin:18px 0;letter-spacing:-.01em}
+.actions-note{flex:1 0 100%;margin:0}
+
+/* Filters: search on its own row, the rest in one row of four plus Clear */
+.tx-filters{display:grid;gap:12px;padding:4px 20px 12px}
+.tx-filter-rest{display:grid;grid-template-columns:repeat(4,minmax(0,1fr)) auto;gap:12px;align-items:start}
+.tx-filter-toggle{display:none}
+.tx-search .search-input{min-width:0;min-height:40px;padding-left:10px;background:var(--surface-2)}
+.tx-search .search-input input{min-height:38px;border:0;background:none}
+.tx-clear{align-self:end;min-height:40px;white-space:nowrap}
+.tx-count{margin:0;padding:0 20px 10px;font-size:12px;color:var(--muted)}
+
+/* Table */
+.tx-table{table-layout:auto}
+.tx-table th{font-size:11px;font-weight:500;letter-spacing:.02em;color:var(--muted);padding:10px 14px;position:sticky;top:0;background:var(--surface);z-index:1}
+.tx-table td{padding:11px 14px;font-size:13px;vertical-align:middle}
+.tx-table tr{position:relative}
+.tx-table .c-id{max-width:340px}
+.tx-table .id-button{font:500 13px var(--font-mono-stack);color:var(--text);text-align:left}
+.tx-table .id-button::after{content:"";position:absolute;inset:0}
+.tx-table .id-button:focus-visible{outline-offset:-2px}
+.tx-table tbody tr{cursor:pointer}
+.tx-table tbody tr:hover td{background:var(--surface-2)}
+.tx-table .c-merchant{max-width:180px;overflow:hidden;text-overflow:ellipsis}
+.tx-table .c-amount{white-space:nowrap}
+.tx-table td small{margin-top:3px}
+.merchant-inline{display:none!important}
+.has-pane .col-merchant{display:none}
+.has-pane .merchant-inline{display:block!important}
+.has-pane .ruler{width:56px}
+.tx-table tr.is-selected td{background:var(--surface-3)}
+.tx-table tr.is-selected td:first-child{box-shadow:inset 1px 0 0 var(--accent)}
+.skeleton{display:block;height:12px;border-radius:3px;background:var(--surface-3);width:70%}
+.skeleton-row td{padding:16px 14px}
+.empty-small .button{align-self:flex-start}
+.pagination .button{min-height:36px}
+
+/* Sheet: right-hand on tablets */
+.sheet{animation:sheet-in .18s cubic-bezier(.2,0,0,1)}
+@keyframes sheet-in{from{transform:translateX(12px);opacity:0}to{transform:none;opacity:1}}
+.dialog-overlay{background:#05080def;backdrop-filter:none}
+
+/* Phones: rows become cards, sheet rises from the bottom */
+@media (max-width:719px){
+  .tx-filters{padding:4px 14px 10px}
+  .tx-filter-toggle{display:inline-flex;justify-self:start}
+  .tx-filter-rest{display:none;grid-template-columns:1fr 1fr}
+  .tx-filter-rest.is-open{display:grid}
+  .tx-clear{grid-column:1/-1;justify-self:start}
+  .context-main dl{display:grid;grid-template-columns:1fr 1fr;gap:10px 14px}
+  .tx-count{padding:0 14px 10px}
+  .tx-table thead{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+  .tx-table,.tx-table tbody{display:block;white-space:normal}
+  .tx-table tbody tr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;padding:14px;border-bottom:1px solid var(--line)}
+  .tx-table tbody tr:last-child{border-bottom:0}
+  .tx-table td{display:block;padding:0;border:0}
+  .tx-table tbody tr:hover td,.tx-table tr.is-selected td{background:none}
+  .tx-table tbody tr:hover,.tx-table tr.is-selected{background:var(--surface-2)}
+  .tx-table .c-id{grid-column:1;grid-row:1;max-width:none}
+  .tx-table .c-review{grid-column:2;grid-row:1;justify-self:end}
+  .tx-table .c-amount{grid-column:2;grid-row:2;text-align:right;font-size:14px;font-weight:500}
+  .tx-table .c-score{grid-column:1;grid-row:2;text-align:left}
+  .tx-table .c-merchant,.tx-table .col-merchant{display:none}
+  .merchant-inline{display:block!important}
+  .tx-table tr.is-selected td:first-child{box-shadow:none}
+  .tx-table tr.is-selected{box-shadow:inset 2px 0 0 var(--accent)}
+  .tx-table .skeleton-row{display:grid}
+  .tx-table .skeleton-row td:nth-child(n+3){display:none}
+  .pagination{padding:14px}
+  .pagination>div{flex:1;justify-content:flex-end}
+  .drawer.sheet{top:auto;left:0;right:0;bottom:0;width:100%;height:92dvh;max-height:92dvh;border-left:0;border-top:1px solid var(--line-strong);border-radius:12px 12px 0 0;padding:20px 16px;animation:sheet-up .18s cubic-bezier(.2,0,0,1)}
+  .sheet .drawer-actions{bottom:0;margin:auto -16px -20px;padding:14px 16px 20px}
+  .button,.icon-button,.field input,.field select{min-height:44px}
+  .icon-button{min-width:44px}
+}
+@keyframes sheet-up{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.sheet{animation:none}}
+
+/* Narrow desktop: filters wrap */
+@media (min-width:720px) and (max-width:1099px){
+  .tx-filter-rest{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .tx-clear{grid-column:1/-1;justify-self:start}
+}
+.drawer .evidence-title{font-size:18px;line-height:1.35;margin:0 0 6px;letter-spacing:0}
+.has-pane .tx-filter-rest{grid-template-columns:1fr 1fr 1fr 1.35fr auto}
+.tx-table .c-id{max-width:300px}
+.tx-table .id-button{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.has-pane .tx-table .c-id{max-width:230px}
+@media (max-width:719px){.tx-table .c-id{max-width:none}.tx-table .id-button{white-space:normal;overflow:visible;word-break:break-all}}

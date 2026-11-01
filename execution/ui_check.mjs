@@ -12,7 +12,7 @@ const args = process.argv.slice(2);
 const arg = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
 const base = arg("--base", "http://127.0.0.1:3000");
 const shots = arg("--shots", "");
-const only = arg("--only", ""); // overflow | drawer | journey
+const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models
 if (shots) mkdirSync(shots, { recursive: true });
 
 const sections = ["overview", "transactions", "investigations", "network", "laboratory", "monitoring", "assistant"];
@@ -96,7 +96,7 @@ async function journeyCheck(browser) {
     const make = act.getByRole("button", { name: /create investigation/i });
     if (await make.count()) await make.click();
     await act.getByText(/in investigation/i).first().waitFor();
-    record("journey: drawer stays open and shows the case status", await page.getByRole("dialog").isVisible());
+    record("journey: evidence pane stays open and shows the case status", await page.locator(".tx-pane").isVisible());
     await page.goto(base + "/app/investigations", { waitUntil: "networkidle" });
     const note = "ui-check note " + Date.now();
     await page.locator("#note").fill(note);
@@ -163,12 +163,59 @@ async function onboardingCheck(browser) {
     await analyze.click();
     await page.waitForURL("**/app/transactions");
     await page.getByText(/Analysed .*160 rows, \d+ flagged for review/).first().waitFor();
-    const risk = await page.getByLabel("Risk filter").inputValue();
+    const risk = await page.getByLabel("Anomaly level").inputValue();
     record("onboarding: lands on Transactions filtered to flagged, with a factual summary", risk === "flagged", "risk filter " + risk);
   } catch (e) {
     record("onboarding: J1 checks", false, String(e.message).split(String.fromCharCode(10))[0]);
   }
   await context.close();
+}
+
+// Transactions screen: docked pane with keyboard, sheet on tablets, cards on phones, filter states.
+async function transactionChecks(browser) {
+  const open = async (width, height) => {
+    const context = await browser.newContext({ viewport: { width, height } });
+    const page = await context.newPage();
+    await page.goto(base + "/app/transactions", { waitUntil: "networkidle" });
+    await page.locator(".id-button").first().waitFor();
+    return { context, page };
+  };
+  try {
+    let { context, page } = await open(1440, 900);
+    const first = page.locator(".id-button").first();
+    await first.focus();
+    await page.keyboard.press("Enter");
+    await page.locator(".tx-pane").waitFor();
+    record("transactions: Enter opens the docked evidence pane and focuses its heading", await page.evaluate(() => document.activeElement?.id === "evidence-title"));
+    record("transactions: no horizontal overflow with the pane docked @1440", await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    await page.keyboard.press("Escape");
+    await page.locator(".tx-pane").waitFor({ state: "detached" });
+    record("transactions: Escape closes the pane and focus returns to the row", await page.evaluate(() => document.activeElement?.classList.contains("id-button")));
+    await page.getByLabel("Search", { exact: true }).fill("zzz-no-such-thing");
+    await page.getByText("No transactions match these filters.").waitFor();
+    await page.getByRole("button", { name: "Clear filters" }).last().click();
+    await page.locator(".id-button").first().waitFor();
+    record("transactions: empty filter result offers Clear filters and recovers", true);
+    await page.getByLabel("Min amount (INR)").fill("-5");
+    record("transactions: invalid minimum amount is reported", (await page.getByText("Enter 0 or more.").count()) === 1);
+    await context.close();
+    ({ context, page } = await open(1024, 768));
+    await page.locator(".id-button").first().click();
+    await page.getByRole("dialog").waitFor();
+    await page.keyboard.press("Escape");
+    await page.getByRole("dialog").waitFor({ state: "detached" });
+    record("transactions: evidence is a modal sheet below 1100px and closes on Escape", true);
+    await context.close();
+    ({ context, page } = await open(390, 844));
+    record("transactions: phone cards do not overflow @390", await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    await page.locator(".id-button").first().click();
+    await page.getByRole("dialog").waitFor();
+    const box = await page.locator(".drawer-actions").first().boundingBox();
+    record("transactions: phone sheet keeps its action visible", !!box && box.y + box.height <= 844);
+    await context.close();
+  } catch (e) {
+    record("transactions: screen checks", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
 }
 
 // Experiments and Data checks: caveat, n and positives, unlabeled datasets, no duplicated metrics.
@@ -205,6 +252,7 @@ if (!only || only === "drawer") await drawerChecks(browser);
 if (!only || only === "journey") await journeyCheck(browser);
 if (!only || only === "journey" || only === "investigations") await investigationChecks(browser);
 if (!only || only === "onboarding") await onboardingCheck(browser);
+if (!only || only === "transactions") await transactionChecks(browser);
 if (!only || only === "models") await modelChecks(browser);
 await browser.close();
 

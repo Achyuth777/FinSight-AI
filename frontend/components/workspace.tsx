@@ -2,7 +2,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, useRef } from "react";
-import * as Dialog from "@radix-ui/react-dialog";
 import {
   Activity,
   ArrowDownToLine,
@@ -23,7 +22,6 @@ import {
   ShieldCheck,
   Sparkles,
   Upload,
-  X,
   Info,
   ScanLine,
 } from "lucide-react";
@@ -31,6 +29,9 @@ import { Brand } from "./brand";
 import { money, label, featureLabel, pct, utc } from "./workspace/format";
 import { Score, Panel, MetricCards, Unavailable } from "./workspace/primitives";
 import { Button } from "./ui/button";
+import { Sheet, SheetDescription, SheetTitle } from "./ui/sheet";
+import { TransactionsScreen } from "./workspace/transactions-screen";
+import { EvidencePanel } from "./workspace/evidence-panel";
 import { ActivityChart, RiskChart } from "./charts";
 import {
   api,
@@ -84,12 +85,7 @@ export default function Workspace({ section }: { section: string }) {
     return () => clearInterval(id);
   }, [busy]);
 
-  const [query, setQuery] = useState(""),
-    [risk, setRisk] = useState("all"),
-    [minAmount, setMinAmount] = useState(""),
-    [split, setSplit] = useState("all"),
-    [sort, setSort] = useState("risk"),
-    [page, setPage] = useState(0),
+  const [landingRisk, setLandingRisk] = useState<string | undefined>(),
     [range, setRange] = useState("all");
   const [contamination, setContamination] = useState(0.07),
     [trees, setTrees] = useState(150),
@@ -111,7 +107,14 @@ export default function Workspace({ section }: { section: string }) {
     try {
       await fn();
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Unexpected error");
+      // A rejected fetch means the API is unreachable; say so instead of the browser's wording.
+      setError(
+        e instanceof TypeError
+          ? "Could not reach the FinSight API. Check that it is running, then retry. Nothing was changed."
+          : e instanceof Error
+            ? e.message
+            : "Unexpected error",
+      );
     } finally {
       setBusy("");
     }
@@ -143,7 +146,7 @@ export default function Workspace({ section }: { section: string }) {
           sessionStorage.removeItem("finsight-landing");
           const l = JSON.parse(raw);
           if (l.notice) setNotice(l.notice);
-          if (l.risk) setRisk(l.risk);
+          if (l.risk) setLandingRisk(l.risk);
         } catch {}
       })
       .finally(() => setLoaded(true));
@@ -183,9 +186,7 @@ export default function Workspace({ section }: { section: string }) {
     setNotice(
       `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString()} rows, ${flaggedCount.toLocaleString()} flagged for review.`,
     );
-    setRisk("flagged");
-    setSort("risk");
-    setPage(0);
+    setLandingRisk("flagged");
     // Each section is its own route and remounts, so carry the landing state across the navigation.
     try {
       sessionStorage.setItem(
@@ -268,37 +269,6 @@ export default function Workspace({ section }: { section: string }) {
     });
   }
   const rows = run?.transactions || [];
-  const sorted = useMemo(
-    () =>
-      rows
-        .filter(
-          (t) =>
-            (
-              t.transaction_id +
-              " " +
-              t.account_id +
-              " " +
-              t.merchant +
-              " " +
-              t.device_id
-            )
-              .toLowerCase()
-              .includes(query.toLowerCase()) &&
-            (risk === "all" ||
-              (risk === "flagged" ? t.flagged : t.risk_score >= 95)) &&
-            (!minAmount || t.amount >= Number(minAmount)) &&
-            (split === "all" || t.split === split),
-        )
-        .sort((a, b) =>
-          sort === "amount"
-            ? b.amount - a.amount
-            : sort === "recent"
-              ? b.timestamp.localeCompare(a.timestamp)
-              : b.risk_score - a.risk_score,
-        ),
-    [rows, query, risk, minAmount, split, sort],
-  );
-  useEffect(() => setPage(0), [query, risk, minAmount, split, sort]);
   const flagged = rows.filter((t) => t.flagged),
     high = [...rows].sort((a, b) => b.risk_score - a.risk_score),
     activeCase = cases.find((c) => c.id === caseId) || cases[0];
@@ -750,85 +720,18 @@ export default function Workspace({ section }: { section: string }) {
               </div>
             </>
           )}
-          {run && section === "transactions" && (
-            <Panel
-              title="Transaction explorer"
-              subtitle={`${sorted.length.toLocaleString()} matching transactions. Anomaly percentile ranks each row against training scores; it is not a fraud probability. Flagged means above the model threshold.`}
-            >
-              <div className="filters">
-                <div className="search-input">
-                  <Search size={16} />
-                  <input
-                    aria-label="Search transactions"
-                    placeholder="Search ID, account, merchant, device…"
-                    value={query}
-                    onChange={(e) => setQuery(e.target.value)}
-                  />
-                </div>
-                <select
-                  aria-label="Risk filter"
-                  value={risk}
-                  onChange={(e) => setRisk(e.target.value)}
-                >
-                  <option value="all">All anomaly levels</option>
-                  <option value="flagged">Model flagged</option>
-                  <option value="high">95th percentile +</option>
-                </select>
-                <input
-                  className="amount-filter"
-                  type="number"
-                  min="0"
-                  aria-label="Minimum amount"
-                  placeholder="Min amount (INR)"
-                  value={minAmount}
-                  onChange={(e) => setMinAmount(e.target.value)}
-                />
-                <select
-                  aria-label="Data split"
-                  value={split}
-                  onChange={(e) => setSplit(e.target.value)}
-                >
-                  <option value="all">All splits</option>
-                  <option value="train">Training</option>
-                  <option value="test">Held-out</option>
-                </select>
-                <select
-                  aria-label="Sort transactions"
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value)}
-                >
-                  <option value="risk">Highest anomaly</option>
-                  <option value="amount">Highest amount</option>
-                  <option value="recent">Most recent</option>
-                </select>
-              </div>
-              {table(sorted.slice(page * 12, (page + 1) * 12))}
-              <div className="pagination">
-                <span>
-                  {sorted.length
-                    ? `${(page * 12 + 1).toLocaleString()} to ${Math.min((page + 1) * 12, sorted.length).toLocaleString()} of ${sorted.length.toLocaleString()}`
-                    : "No rows"}
-                </span>
-                <div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={page === 0}
-                    onClick={() => setPage(page - 1)}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={(page + 1) * 12 >= sorted.length}
-                    onClick={() => setPage(page + 1)}
-                  >
-                    Next
-                  </Button>
-                </div>
-              </div>
-            </Panel>
+          {section === "transactions" && (run || !loaded) && (
+            <TransactionsScreen
+              key={loaded ? "ready" : "loading"}
+              run={run}
+              loading={!loaded}
+              cases={cases}
+              busy={busy}
+              error={error}
+              initialRisk={landingRisk}
+              onCreateCase={createCase}
+              onOpenCase={setCaseId}
+            />
           )}
           {(run || cases.length > 0) && section === "investigations" && (
             <div className="case-grid">
@@ -1631,131 +1534,40 @@ export default function Workspace({ section }: { section: string }) {
           </div>
         </main>
       </div>
-      <Dialog.Root
-        open={!!selected}
-        onOpenChange={(open) => {
-          if (!open) setSelected(null);
-        }}
-      >
-        <Dialog.Portal>
-          <Dialog.Overlay className="dialog-overlay" />
-          <Dialog.Content
-            className="drawer"
-            onOpenAutoFocus={() => {
-              lastFocused.current = document.activeElement as HTMLElement;
-            }}
-            onCloseAutoFocus={(e) => {
-              e.preventDefault();
-              (lastFocused.current?.isConnected
-                ? lastFocused.current
-                : document.getElementById("workspace-main")
-              )?.focus();
-            }}
-          >
-            {selected && (
-              <>
-                <div className="drawer-top">
-                  <span className="drawer-kind">Transaction evidence</span>
-                  <Dialog.Close
-                    className="icon-button"
-                    aria-label="Close transaction"
-                  >
-                    <X size={20} />
-                  </Dialog.Close>
-                </div>
-                <Dialog.Title>{selected.transaction_id}</Dialog.Title>
-                {error && (
-                  <div className="notice error" role="alert">
-                    {error}
-                  </div>
-                )}
-                {busy && (
-                  <div className="notice" role="status">
-                    <Loader2 className="spin" size={15} />
-                    {busy}…
-                  </div>
-                )}
-                <p className="muted">
-                  {run?.source.toUpperCase()} · Run {run?.id.slice(0, 8)} ·
-                  Anomaly percentile relative to training
-                </p>
-                <Dialog.Description className="muted">
-                  {selected.merchant} · {utc(selected.timestamp)}
-                </Dialog.Description>
-                <div className="drawer-amount">
-                  {money(selected.amount)}
-                  <Score tx={selected} threshold={flagFloor} />
-                </div>
-                <div className="notice">
-                  <Info size={17} />
-                  Anomaly percentile, not a fraud probability.
-                </div>
-                <dl className="details-grid">
-                  {[
-                    ["Account", selected.account_id],
-                    ["Device", selected.device_id],
-                    ["Data split", selected.split],
-                    ["Raw anomaly score", selected.anomaly_score],
-                    ["Transactions / 1h", selected.velocity_1h],
-                    ["Account age", selected.account_age_days + " days"],
-                    ["Distance", selected.distance_km + " km"],
-                  ].map(([k, v]) => (
-                    <div key={k}>
-                      <dt>{k}</dt>
-                      <dd>{v}</dd>
-                    </div>
-                  ))}
-                </dl>
-                <h3>What stands out</h3>
-                <p className="muted">
-                  Absolute deviations from training medians, in interquartile
-                  ranges. Contextual signals, not model attribution or proof of
-                  fraud. Amount, age and distance use log1p values; hour is UTC.
-                  Zero IQR uses a scale of 1 transformed unit.
-                </p>
-                {selected.reasons.map((r) => (
-                  <div className="reason" key={r.feature}>
-                    <span>{featureLabel(r.feature)}</span>
-                    <strong>{r.deviation_iqr} IQR</strong>
-                  </div>
-                ))}
-                <h3>Account history in this dataset</h3>
-                <p className="muted">
-                  {
-                    rows.filter(
-                      (t) =>
-                        t.account_id === selected.account_id &&
-                        t.timestamp < selected.timestamp,
-                    ).length
-                  }{" "}
-                  earlier transactions. History excludes the selected
-                  transaction and later records.
-                </p>
-                <div className="drawer-actions">
-                  {caseByTx.get(selected.transaction_id) ? (
-                    <>
-                      <span className="pill case">
-                        In investigation: {caseByTx.get(selected.transaction_id)!.status}
-                      </span>
-                      <Link
-                        href="/app/investigations"
-                        className="button primary"
-                        onClick={() => setCaseId(caseByTx.get(selected.transaction_id)!.id)}
-                      >
-                        Open investigation <ArrowRight size={16} />
-                      </Link>
-                    </>
-                  ) : (
-                    <Button disabled={!!busy} onClick={() => createCase(selected)}>
-                      <Plus size={17} /> Create investigation
-                    </Button>
-                  )}
-                </div>
-              </>
-            )}
-          </Dialog.Content>
-        </Dialog.Portal>
-      </Dialog.Root>
+      {run && (
+        <Sheet
+          open={!!selected && section !== "transactions"}
+          onOpenChange={(open) => {
+            if (!open) setSelected(null);
+          }}
+          onOpenAutoFocus={() => {
+            lastFocused.current = document.activeElement as HTMLElement;
+          }}
+          onCloseAutoFocus={(e) => {
+            e.preventDefault();
+            (lastFocused.current?.isConnected ? lastFocused.current : document.getElementById("workspace-main"))?.focus();
+          }}
+        >
+          {selected && (
+            <>
+              <EvidencePanel
+                tx={selected}
+                run={run}
+                earlier={rows.filter((t) => t.account_id === selected.account_id && t.timestamp < selected.timestamp).length}
+                flagFloor={flagFloor}
+                kase={caseByTx.get(selected.transaction_id)}
+                busy={busy}
+                error={error}
+                Title={SheetTitle}
+                Description={SheetDescription}
+                onCreateCase={createCase}
+                onOpenCase={setCaseId}
+                onClose={() => setSelected(null)}
+              />
+            </>
+          )}
+        </Sheet>
+      )}
     </div>
   );
 }
