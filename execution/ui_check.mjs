@@ -143,12 +143,41 @@ async function investigationChecks(browser) {
   await context.close();
 }
 
+// J1: import a CSV, analyze with defaults, land on flagged transactions with a factual summary.
+async function onboardingCheck(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    const head = "transaction_id,timestamp,account_id,device_id,merchant,amount,velocity_1h,account_age_days,distance_km";
+    const lines = [head];
+    for (let i = 0; i < 160; i++) {
+      const ts = new Date(Date.UTC(2026, 9, 1, 0, i * 7)).toISOString();
+      const odd = i % 40 === 39;
+      lines.push([`UIC-${1000 + i}`, ts, `UIA-${i % 12}`, `UID-${i % 15}`, ["Alpha Store", "Beta Fuel", "Gamma Air"][i % 3], odd ? 90000 + i : 500 + ((i * 37) % 900), odd ? 15 : 1 + (i % 3), 30 + (i % 200), odd ? 900 : 5 + (i % 20)].join(","));
+    }
+    await page.goto(base + "/app/overview", { waitUntil: "networkidle" });
+    await page.locator('input[aria-label="Import transaction CSV"]').setInputFiles({ name: "ui-check-" + Date.now() + ".csv", mimeType: "text/csv", buffer: Buffer.from(lines.join("\n")) });
+    const analyze = page.getByRole("button", { name: /analyze with defaults/i }).first();
+    await analyze.waitFor();
+    record("onboarding: import leads to a single 'Analyze with defaults' step", true);
+    await analyze.click();
+    await page.waitForURL("**/app/transactions");
+    await page.getByText(/Analysed .*160 rows, \d+ flagged for review/).first().waitFor();
+    const risk = await page.getByLabel("Risk filter").inputValue();
+    record("onboarding: lands on Transactions filtered to flagged, with a factual summary", risk === "flagged", "risk filter " + risk);
+  } catch (e) {
+    record("onboarding: J1 checks", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
+  await context.close();
+}
+
 const browser = await launch();
 await ensureRun((await browser.newContext()).request);
 if (!only || only === "overflow") await overflowChecks(browser);
 if (!only || only === "drawer") await drawerChecks(browser);
 if (!only || only === "journey") await journeyCheck(browser);
 if (!only || only === "journey" || only === "investigations") await investigationChecks(browser);
+if (!only || only === "onboarding") await onboardingCheck(browser);
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

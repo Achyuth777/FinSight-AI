@@ -170,3 +170,8 @@ td small{color:var(--muted)}
 .save-row{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:10px}
 .saved{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--accent)}
 .case-item .pill{margin-left:8px}
+
+/* Step 3: first-run choices and a saved-but-unanalysed dataset */
+.empty-choices{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
+.pending-dataset{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.pending-dataset span{flex:1 1 280px}

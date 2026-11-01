@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, useMemo, useRef } from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import {
@@ -73,6 +74,15 @@ export default function Workspace({ section }: { section: string }) {
     [selected, setSelected] = useState<Tx | null>(null),
     [mobile, setMobile] = useState(false);
   const lastFocused = useRef<HTMLElement | null>(null);
+  const router = useRouter();
+  const lastTask = useRef<{ name: string; fn: () => Promise<void> } | null>(null);
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    if (!busy) return;
+    setElapsed(0);
+    const id = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(id);
+  }, [busy]);
 
   const [query, setQuery] = useState(""),
     [risk, setRisk] = useState("all"),
@@ -94,6 +104,7 @@ export default function Workspace({ section }: { section: string }) {
       sources: { citation: string; transaction_id: string; text: string }[];
     } | null>(null);
   async function task(name: string, fn: () => Promise<void>) {
+    lastTask.current = { name, fn };
     setBusy(name);
     setError("");
     setNotice("");
@@ -124,7 +135,18 @@ export default function Workspace({ section }: { section: string }) {
     }
   }
   useEffect(() => {
-    task("Connecting to workspace", refresh).finally(() => setLoaded(true));
+    task("Connecting to workspace", refresh)
+      .then(() => {
+        try {
+          const raw = sessionStorage.getItem("finsight-landing");
+          if (!raw) return;
+          sessionStorage.removeItem("finsight-landing");
+          const l = JSON.parse(raw);
+          if (l.notice) setNotice(l.notice);
+          if (l.risk) setRisk(l.risk);
+        } catch {}
+      })
+      .finally(() => setLoaded(true));
   }, []);
   async function loadRun(id: string) {
     await task("Loading experiment", async () => {
@@ -154,6 +176,36 @@ export default function Workspace({ section }: { section: string }) {
       );
     });
   }
+  function analysed(r: Run) {
+    const flaggedCount = r.transactions.filter((x) => x.flagged).length;
+    setNotice(
+      `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString()} rows, ${flaggedCount.toLocaleString()} flagged for review.`,
+    );
+    setRisk("flagged");
+    setSort("risk");
+    setPage(0);
+    // Each section is its own route and remounts, so carry the landing state across the navigation.
+    try {
+      sessionStorage.setItem(
+        "finsight-landing",
+        JSON.stringify({ notice: `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString()} rows, ${flaggedCount.toLocaleString()} flagged for review.`, risk: "flagged" }),
+      );
+    } catch {}
+    router.push("/app/transactions");
+  }
+  async function analyzeDefaults(id: string) {
+    await task("Training model", async () => {
+      const r = await api<Run>("/runs", {
+        method: "POST",
+        body: JSON.stringify({ dataset_id: id, contamination: 0.07, trees: 150 }),
+      });
+      setRun(r);
+      setDataset(id);
+      localStorage.setItem("finsight-run", r.id);
+      setRuns(await api<Run[]>("/runs"));
+      analysed(r);
+    });
+  }
   async function demo() {
     await task("Preparing synthetic demo", async () => {
       const d = await api<Dataset>("/datasets/demo", { method: "POST" });
@@ -170,7 +222,7 @@ export default function Workspace({ section }: { section: string }) {
       setRun(r);
       localStorage.setItem("finsight-run", r.id);
       setRuns(await api<Run[]>("/runs"));
-      setNotice("Synthetic dataset loaded and Isolation Forest trained.");
+      analysed(r);
     });
   }
   async function upload(file: File) {
@@ -334,6 +386,22 @@ export default function Workspace({ section }: { section: string }) {
       </div>
     );
   }
+  const importControl = (
+    <label className={"button outline " + (busy ? "disabled" : "")}>
+      <Upload size={16} /> Import CSV
+      <input
+        type="file"
+        accept=".csv"
+        className="sr-only"
+        aria-label="Import transaction CSV"
+        disabled={!!busy}
+        onChange={(e) => {
+          if (e.target.files?.[0]) upload(e.target.files[0]);
+          e.target.value = "";
+        }}
+      />
+    </label>
+  );
   return (
     <div className="app-shell">
       <a href="#workspace-main" className="skip-link">
@@ -406,34 +474,14 @@ export default function Workspace({ section }: { section: string }) {
               <h1>{titles[section][0]}</h1>
               <p>{titles[section][1]}</p>
             </div>
-            {(section === "overview" || section === "transactions") && (
-            <div className="heading-actions">
-              <label className={"button outline " + (busy ? "disabled" : "")}>
-                <Upload size={16} /> Import CSV
-                <input
-                  type="file"
-                  accept=".csv"
-                  className="sr-only"
-                  aria-label="Import transaction CSV"
-                  disabled={!!busy}
-                  onChange={(e) => {
-                    if (e.target.files?.[0]) upload(e.target.files[0]);
-                    e.target.value = "";
-                  }}
-                />
-              </label>
-              {!run && !datasets.length && (
-                <Button onClick={demo} disabled={!!busy}>
-                  Load demo <ArrowRight size={16} />
-                </Button>
-              )}
-            </div>
+            {run && (section === "overview" || section === "transactions") && (
+              <div className="heading-actions">{importControl}</div>
             )}
           </div>
           {busy && (
             <div className="notice" role="status">
               <Loader2 className="spin" size={17} />
-              {busy}…
+              {busy}… {elapsed}s
             </div>
           )}
           {error && !(section === "investigations" && activeCase) && (
@@ -442,9 +490,13 @@ export default function Workspace({ section }: { section: string }) {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => task("Reconnecting", refresh)}
+                onClick={() =>
+                  lastTask.current
+                    ? task(lastTask.current.name, lastTask.current.fn)
+                    : task("Reconnecting", refresh)
+                }
               >
-                Retry connection
+                Retry
               </Button>
             </div>
           )}
@@ -452,6 +504,22 @@ export default function Workspace({ section }: { section: string }) {
             <div className="notice success" role="status">
               <Check size={17} />
               {notice}
+            </div>
+          )}
+          {run && dataset && dataset !== run.dataset_id && datasets.some((d) => d.id === dataset) && (
+            <div className="notice pending-dataset" role="status">
+              <Database size={17} />
+              <span>
+                {datasets.find((d) => d.id === dataset)?.name} (
+                {datasets.find((d) => d.id === dataset)?.row_count.toLocaleString()} rows)
+                is saved but not analysed. The figures below are for run {run.id.slice(0, 8)}.
+              </span>
+              <Button size="sm" onClick={() => analyzeDefaults(dataset)} disabled={!!busy}>
+                Analyze with defaults
+              </Button>
+              <Link href="/app/laboratory" className="text-link">
+                Choose settings in Experiments
+              </Link>
             </div>
           )}
           {run && (() => {
@@ -512,11 +580,11 @@ export default function Workspace({ section }: { section: string }) {
                   has no analysis run. Analyze it with default settings
                   (7% contamination, 150 trees), or tune them in Experiments.
                 </p>
-                <Button onClick={() => experiment()} disabled={!!busy}>
+                <Button onClick={() => analyzeDefaults(dataset || datasets[0].id)} disabled={!!busy}>
                   Analyze with defaults <ArrowRight size={17} />
                 </Button>
                 <Link href="/app/laboratory" className="text-link">
-                  Tune in Experiments <ArrowRight size={15} />
+                  Choose settings in Experiments <ArrowRight size={15} />
                 </Link>
               </div>
             ) : (
@@ -529,9 +597,12 @@ export default function Workspace({ section }: { section: string }) {
                   Load the 1,200-row synthetic sample (not production data) and
                   train Isolation Forest, or import your own CSV.
                 </p>
-                <Button onClick={demo} disabled={!!busy}>
-                  Load synthetic sample <ArrowRight size={17} />
-                </Button>
+                <div className="empty-choices">
+                  <Button onClick={demo} disabled={!!busy}>
+                    Load synthetic sample <ArrowRight size={17} />
+                  </Button>
+                  {importControl}
+                </div>
                 <a href="/api/template" className="text-link">
                   Download example CSV <ArrowDownToLine size={15} />
                 </a>
