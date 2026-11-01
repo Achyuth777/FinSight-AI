@@ -1,7 +1,7 @@
 import "./globals.css";
 import "./obsidian.css";
 import "./instrument.css";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 
 // Direction B (Instrument): Plex Sans for text, Plex Mono for figures and IDs.
@@ -18,6 +18,8 @@ const mono = IBM_Plex_Mono({
   variable: "--font-mono",
   display: "swap",
 });
+
+export const viewport: Viewport = { themeColor: "#0b0e13", colorScheme: "dark" };
 
 export const metadata: Metadata = {
   title: "FinSight AI — See the signal.",

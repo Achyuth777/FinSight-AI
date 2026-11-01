@@ -193,15 +193,6 @@ input[type="checkbox"] {
   border-radius: 3px;
   margin-left: 1px;
 }
-.eyebrow {
-  font-size: 10px;
-  letter-spacing: 1.8px;
-  font-weight: 600;
-  color: var(--muted);
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-}
 
 .text-link {
   display: inline-flex;
@@ -270,317 +261,7 @@ input[type="checkbox"] {
   top: 10px;
 }
 /* Marketing: editorial spacing, native product visualization */
-.marketing {
-  background: #12161b;
-}
-.marketing-nav {
-  max-width: 1320px;
-  margin: auto;
-  padding: 28px 48px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid #28303b;
-}
-.marketing-links {
-  display: flex;
-  gap: 32px;
-  color: #b1bac7;
-  font-size: 12px;
-}
-.marketing-links a:hover {
-  color: var(--accent);
-}
-.hero {
-  max-width: 1320px;
-  margin: auto;
-  padding: 110px 48px 92px;
-  display: grid;
-  grid-template-columns: 1.12fr 1fr;
-  gap: 55px;
-  align-items: center;
-}
-.hero h1 {
-  font-size: clamp(40px, 4.3vw, 66px);
-  line-height: 1.08;
-  letter-spacing: -2.8px;
-  margin: 26px 0;
-}
-.hero h1 > span {
-  color: var(--accent);
-}
-.hero p {
-  font-size: 15px;
-  line-height: 1.9;
-  color: var(--muted);
-}
-.hero-actions {
-  display: flex;
-  gap: 25px;
-  align-items: center;
-  margin: 30px 0 24px;
-}
-.hero-note {
-  font-size: 9px;
-  letter-spacing: 1px;
-  color: #8491a4;
-}
-.hero-note span {
-  margin: 0 10px;
-}
 
-.principle-strip {
-  border-top: 1px solid #2b333f;
-  border-bottom: 1px solid #2b333f;
-  padding: 25px 48px;
-  display: flex;
-  justify-content: center;
-  gap: 65px;
-  color: #b3bdcc;
-  font-size: 12px;
-}
-.principle-strip span {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-.principle-strip > span:first-child {
-  color: #8291a6;
-}
-.marketing-section {
-  max-width: 1320px;
-  margin: auto;
-  padding: 95px 48px;
-}
-.section-intro h2,
-.method-section h2 {
-  font-size: 40px;
-  letter-spacing: -1.5px;
-  line-height: 1.2;
-  margin: 19px 0;
-}
-.section-intro > p {
-  color: var(--muted);
-  font-size: 14px;
-  line-height: 1.8;
-}
-.capabilities {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 18px;
-  margin-top: 44px;
-}
-.capability {
-  position: relative;
-  background: #1a2028;
-  border: 1px solid #303a47;
-  padding: 28px;
-  border-radius: 12px;
-}
-.capability:hover {
-  border-color: #6c825a;
-  background: #202731;
-}
-.capability-icon {
-  height: 100px;
-  display: flex;
-  justify-content: space-between;
-  color: #b8c9ae;
-}
-.capability-icon span {
-  font-size: 10px;
-  color: #6b7d97;
-}
-.capability h3 {
-  font-size: 22px;
-  letter-spacing: -0.5px;
-  margin: 15px 0 12px;
-}
-.capability p {
-  color: var(--muted);
-  line-height: 1.9;
-  font-size: 13px;
-  max-width: 280px;
-}
-.cap-arrow {
-  margin-top: 25px;
-  color: var(--accent);
-}
-.method-section {
-  background: #dce6cf;
-  color: #222932;
-  padding: 75px max(48px, calc((100vw - 1224px) / 2));
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 80px;
-}
-.method-section .eyebrow {
-  color: #55654e;
-}
-.method-section h2 {
-  font-size: 42px;
-}
-.method-section h2 span {
-  color: #718363;
-}
-.method-section > div > p {
-  color: #4f6147;
-  max-width: 450px;
-  line-height: 1.9;
-  margin-bottom: 24px;
-}
-.method-section .outline {
-  border-color: #8d9d81;
-}
-.method-section .outline:hover {
-  background: #c5d7b5;
-}
-.method-card {
-  background: #eef2e8;
-  border: 1px solid #bccbb1;
-  border-radius: 13px;
-  padding: 24px;
-}
-.card-heading {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-size: 13px;
-  padding-bottom: 20px;
-  border-bottom: 1px solid #cbd6c2;
-}
-.card-heading .pill {
-  margin-left: auto;
-  font-size: 8px;
-  background: #d9e6cc;
-  color: #405738;
-}
-.pipeline-step {
-  display: flex;
-  gap: 20px;
-  padding: 19px 0;
-  border-bottom: 1px solid #d5dece;
-}
-.pipeline-step > span {
-  font-size: 11px;
-  color: #788c6b;
-  padding-top: 3px;
-}
-.pipeline-step h3 {
-  font-size: 15px;
-}
-.pipeline-step p {
-  font-size: 11px;
-  color: #65775b;
-  margin-top: 3px;
-}
-.method-foot {
-  font-size: 10px;
-  color: #5f7253;
-  padding-top: 19px;
-}
-.workflow-preview {
-  display: grid;
-  grid-template-columns: 1fr 1.7fr;
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  margin-top: 35px;
-  overflow: hidden;
-  background: #1a1f26;
-}
-.workflow-tabs {
-  padding: 28px;
-  border-right: 1px solid var(--line);
-}
-.workflow-tabs button {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 17px;
-  text-align: left;
-  padding: 20px 12px;
-  border-radius: 7px;
-  color: var(--muted);
-  font-size: 13px;
-}
-.workflow-tabs button > span {
-  font-size: 10px;
-}
-.workflow-tabs button > svg {
-  margin-left: auto;
-}
-.workflow-tabs .selected {
-  background: #d7f692;
-  color: #203019;
-}
-.workflow-content {
-  padding: 40px 50px;
-}
-.workflow-content h3 {
-  font-size: 28px;
-  letter-spacing: -0.8px;
-  margin: 20px 0 12px;
-}
-.workflow-content p {
-  max-width: 540px;
-  color: var(--muted);
-  line-height: 1.9;
-  margin-bottom: 24px;
-}
-.architecture {
-  text-align: center;
-  border-top: 1px solid var(--line);
-  border-bottom: 1px solid var(--line);
-  padding: 38px 40px;
-}
-.architecture > div {
-  display: flex;
-  justify-content: center;
-  gap: 45px;
-  align-items: center;
-  margin-top: 30px;
-}
-.architecture > div > span {
-  font-size: 16px;
-}
-.architecture > div > span > span {
-  display: block;
-  font-size: 10px;
-  color: var(--muted);
-  margin-top: 6px;
-}
-.architecture svg {
-  color: #5b6e89;
-  width: 16px;
-}
-.final-cta {
-  text-align: center;
-  padding: 95px 20px;
-}
-.final-cta h2 {
-  font-size: 38px;
-  letter-spacing: -1px;
-  margin: 20px 0 25px;
-}
-.final-cta p {
-  color: var(--muted);
-  font-size: 11px;
-  margin-top: 18px;
-}
-.marketing footer {
-  max-width: 1224px;
-  margin: auto;
-  padding: 28px 0;
-  border-top: 1px solid var(--line);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  color: var(--muted);
-  font-size: 10px;
-}
-.marketing footer .brand {
-  color: var(--text);
-}
 /* Analyst workspace */
 .app-shell {
   min-height: 100vh;
@@ -718,10 +399,7 @@ input[type="checkbox"] {
   color: var(--muted);
   font-size: 12px;
 }
-.page-heading .eyebrow {
-  font-size: 8px;
-  letter-spacing: 1.5px;
-}
+
 .heading-actions {
   display: flex;
   gap: 10px;
@@ -1425,10 +1103,7 @@ td small {
   .metric {
     padding: 24px;
   }
-  .hero {
-    padding-top: 130px;
-    padding-bottom: 120px;
-  }
+  
 }
 @media (max-width: 1200px) {
   .sidebar {
@@ -1452,25 +1127,14 @@ td small {
   }
   
   
-  .hero {
-    gap: 30px;
-    padding: 75px 35px;
-  }
-  .hero h1 {
-    font-size: 48px;
-  }
-  .principle-strip {
-    gap: 30px;
-  }
-  .marketing-nav {
-    padding: 25px 35px;
-  }
+  
+  
+  
+  
   .lab-grid {
     grid-template-columns: 290px minmax(0, 1fr);
   }
-  .marketing footer {
-    margin: 0 35px;
-  }
+  
   
   .research-layout {
     grid-template-columns: 1fr;
@@ -1536,56 +1200,21 @@ td small {
     max-height: 360px;
     overflow: auto;
   }
-  .hero {
-    grid-template-columns: 1fr;
-    padding: 65px 35px;
-    gap: 45px;
-  }
-  .hero h1 {
-    font-size: 60px;
-  }
   
-  .principle-strip {
-    gap: 25px;
-    padding: 24px 30px;
-    flex-wrap: wrap;
-  }
-  .marketing-section {
-    padding: 70px 35px;
-  }
-  .capabilities {
-    gap: 12px;
-  }
-  .capability {
-    padding: 22px;
-  }
-  .capability h3 {
-    font-size: 20px;
-  }
-  .method-section {
-    padding: 60px 35px;
-    gap: 35px;
-    grid-template-columns: 1fr;
-  }
-  .method-card {
-    max-width: 650px;
-  }
-  .workflow-content {
-    padding: 30px;
-  }
-  .architecture > div {
-    gap: 20px;
-  }
-  .marketing-links {
-    gap: 18px;
-  }
-  .marketing footer {
-    flex-wrap: wrap;
-    gap: 20px;
-  }
-  .marketing footer > span:nth-child(2) {
-    display: none;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 }
 @media (max-width: 640px) {
   .sidebar {
@@ -1728,167 +1357,57 @@ td small {
     font-size: 7px;
     letter-spacing: 0.6px;
   }
-  .marketing-nav {
-    padding: 20px;
-  }
-  .marketing-nav .brand {
-    font-size: 22px;
-  }
-  .marketing-nav .button {
-    padding: 9px 11px;
-    font-size: 10px;
-  }
-  .marketing-links {
-    display: none;
-  }
-  .hero {
-    padding: 55px 22px;
-    gap: 40px;
-  }
-  .hero .eyebrow {
-    font-size: 8px;
-    letter-spacing: 1.1px;
-  }
-  .hero h1 {
-    font-size: 44px;
-    letter-spacing: -2px;
-    margin: 22px 0;
-  }
-  .hero p {
-    font-size: 13px;
-  }
-  .desktop-break {
-    display: none;
-  }
-  .hero-actions {
-    gap: 18px;
-  }
-  .hero-actions .button {
-    padding: 12px 15px;
-    font-size: 12px;
-  }
-  .hero-note {
-    font-size: 8px;
-  }
   
   
   
   
   
-  .principle-strip {
-    justify-content: flex-start;
-    padding: 23px;
-    gap: 18px;
-    font-size: 10px;
-  }
-  .principle-strip > span:first-child {
-    flex-basis: 100%;
-  }
-  .principle-strip svg {
-    width: 14px;
-  }
-  .marketing-section {
-    padding: 60px 22px;
-  }
-  .section-intro h2,
-  .method-section h2 {
-    font-size: 31px;
-    letter-spacing: -1px;
-  }
-  .section-intro p {
-    font-size: 12px;
-  }
-  .capabilities {
-    grid-template-columns: 1fr;
-    margin-top: 30px;
-  }
-  .capability {
-    padding: 25px;
-  }
-  .capability-icon {
-    height: 70px;
-  }
-  .capability h3 {
-    font-size: 24px;
-  }
-  .capability p {
-    max-width: none;
-    font-size: 13px;
-  }
-  .method-section {
-    padding: 50px 22px;
-  }
-  .method-card {
-    padding: 20px;
-  }
-  .card-heading {
-    font-size: 11px;
-  }
-  .card-heading .pill {
-    font-size: 7px;
-  }
-  .pipeline-step p {
-    font-size: 10px;
-  }
-  .method-section > div > p {
-    font-size: 13px;
-  }
-  .workflow-preview {
-    grid-template-columns: 1fr;
-  }
-  .workflow-tabs {
-    padding: 15px;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .workflow-tabs button {
-    padding: 15px;
-    font-size: 12px;
-  }
-  .workflow-content {
-    padding: 27px;
-  }
-  .workflow-content h3 {
-    font-size: 25px;
-  }
-  .workflow-content p {
-    font-size: 12px;
-  }
-  .workflow-content .button {
-    font-size: 11px;
-  }
-  .architecture {
-    padding: 30px 20px;
-  }
-  .architecture > div {
-    display: grid;
-    grid-template-columns: 1fr 20px 1fr;
-    gap: 25px 15px;
-  }
-  .architecture > div > svg:nth-of-type(2) {
-    display: none;
-  }
-  .architecture > div > span {
-    font-size: 14px;
-  }
-  .architecture > div > span > span {
-    font-size: 9px;
-  }
-  .final-cta {
-    padding: 65px 20px;
-  }
-  .final-cta h2 {
-    font-size: 29px;
-  }
-  .marketing footer {
-    margin: 0 22px;
-  }
-  .marketing footer .brand {
-    font-size: 21px;
-  }
-  .marketing footer > span {
-    font-size: 8px;
-  }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   .empty-state {
     padding: 50px 20px;
   }

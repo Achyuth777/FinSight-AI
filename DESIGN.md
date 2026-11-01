@@ -1,10 +1,10 @@
 # FinSight AI design system: Instrument
 
-Status: shipped. Direction B ("Instrument") was chosen over A ("Ledger") and now covers the whole analyst workspace (`/app/*`) and the login page. The public marketing page (`/`) still uses the older Obsidian styling; it is accessible and honest but not yet restyled (see "Rollout and known limits").
+Status: shipped. Direction B ("Instrument") was chosen over A ("Ledger") and now covers the whole analyst workspace (`/app/*`) and the login page. The public landing page (`/`) uses the same tokens with its own "Trace" direction (section 11).
 
 Where things live:
 
-- Tokens: `frontend/app/globals.css` (`:root`). Legacy rules from the first design (Obsidian) sit in `globals.css` and `obsidian.css` and mostly serve the marketing page.
+- Tokens: `frontend/app/globals.css` (`:root`). Landing styles live in `frontend/app/landing.css`, scoped to `.lp`. Leftover rules from the first design (Obsidian) remain in `globals.css` and `obsidian.css`; the ones only the old marketing page used were removed.
 - Instrument styles for the workspace: `frontend/app/instrument.css`, loaded last so it wins. Login: `frontend/app/login/login.css`.
 - Components: `frontend/components/ui/` (Button, Field/Input/Select, Notice, Sheet, Stat, StatusTag) and `frontend/components/workspace/` (transactions screen, table, evidence panel, formatters, input-mode hook).
 - The two candidate directions that were compared are kept as labelled artifacts in `docs/refinement/directions/` (they are documentation, not shipped code).
@@ -141,7 +141,7 @@ This system wins wherever a skill's advice disagrees. Decisions already made:
 
 Shipped in Instrument: tokens, Overview, Transactions with the docked evidence pane and sheets, Investigations, Experiments, Data checks, Linked accounts, Evidence search, onboarding and import, login, session-expiry and unreachable-API states, motion, and the accessibility and consistency checks in `execution/ui_check.mjs`.
 
-Not restyled: the marketing page (`/`). It uses 8 to 11px text in places and an olive/sage palette. A Persuade-mode direction decision is needed first.
+The landing page (`/`) was rebuilt in the Trace direction (section 11).
 
 Known limits of the shipped design:
 
@@ -149,4 +149,26 @@ Known limits of the shipped design:
 - A table with a very large amount at tablet width scrolls inside its own region instead of reflowing.
 - Closing evidence uses `history.back()`, which is asynchronous; reopening within a few milliseconds is undone.
 - Native selects clip long option labels; the full value is available in the evidence and context views.
-- Legacy Obsidian rules remain for the marketing page and are not tree-shaken per route.
+- Some legacy Obsidian rules remain in `globals.css` and `obsidian.css` and are not tree-shaken per route.
+
+## 11. Landing page ("Trace")
+
+Mode: Persuade. Code: `frontend/components/landing/*`, `frontend/app/landing.css`, `frontend/app/page.tsx`. Same ground, type and tokens as the workspace; one idea: a signal travels from a transaction through shared entities and evidence into an investigation.
+
+Visual rules:
+
+- Ground `--bg`, off-white type, one accent. Lime marks the signal, selection and the primary button only. Amber is reserved for flags and risk, cyan for linked entities. No gradients, glows or blanket glass; the nav gets a solid ground and a hairline once the page scrolls.
+- Display type is IBM Plex Sans 500, `clamp(32px, 9.2vw, 112px)`, tracking -0.04em, balanced. Numbers, IDs and metrics are Plex Mono with tabular figures. Nothing under 11px. Sentence case, in line with the workspace.
+- Sections are separated by space and one hairline, not cards. Surfaces appear only where the page shows product (the transactions window, the run summary, the two evidence cards). Previews use real values from the built-in synthetic sample and say so.
+- Copy keeps the product truths: percentile is a rank, runs are batch, synthetic metrics do not estimate real performance, evidence search is keyword matching, sign-in is one shared owner password. No customers, logos, testimonials, compliance badges or live numbers.
+- Footer links are only the seven workspace routes.
+
+Motion rules:
+
+- Hero: headline, lede, actions and trace rise in once (720ms, `--ease-out`, staggered 90 to 380ms). Content is visible without script.
+- Signature sequence: on the hero trace one lime signal runs the path once (4.8s) and lights each station as it arrives; it plays only while on screen and ends in the lit state, so nothing loops beside the content.
+- Workflow (wide, tall, motion-friendly screens only): a pinned stage. `ScrollStage` writes `--p` and `data-reach` on the section from one passive, rAF-throttled scroll listener that exists only while the section is near the viewport; React state is never touched per frame. CSS maps them to the spine fill, bar growth, the signal drawn along the linked-entity path, and which step and panel are current. Emphasis changes surface, border and position, never text contrast. Scrolling back reverses every state exactly.
+- Settle-in for product windows: opacity and a 28px rise, once, after script marks the element ready. Press feedback `scale(0.97)`; hover only under `(hover: hover)`.
+- Below 900px wide, under 640px tall, and under `prefers-reduced-motion` the workflow is a plain stacked layout with every state visible, the trace shows a static lit path, and no animation runs. The one SVG dash animation (signal) is the only non-transform/opacity motion; it is tiny and one-shot.
+
+Checks: `node execution/landing_check.mjs` (against the production build on port 3000) covers the scroll engine, offscreen pausing, reduced motion, nav, anchors, links, axe and the mobile menu. Screenshots: `docs/refinement/screenshots/landing/`.
