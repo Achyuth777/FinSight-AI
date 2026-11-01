@@ -1,10 +1,10 @@
 # FinSight AI design system: Instrument
 
-Status: shipped. Direction B ("Instrument") was chosen over A ("Ledger") and now covers the whole analyst workspace (`/app/*`) and the login page. The public landing page (`/`) uses the same tokens with its own "Trace" direction (section 11).
+Status: shipped. Direction B ("Instrument") was chosen over A ("Ledger") and now covers the whole analyst workspace (`/app/*`) and the login page. The public landing page (`/`) is a separate art direction, "Lightbox", with its own palette and type (section 11). The workspace rules in sections 1 to 10 do not apply to it.
 
 Where things live:
 
-- Tokens: `frontend/app/globals.css` (`:root`). Landing styles live in `frontend/app/landing.css`, scoped to `.lp`. Leftover rules from the first design (Obsidian) remain in `globals.css` and `obsidian.css`; the ones only the old marketing page used were removed.
+- Tokens: `frontend/app/globals.css` (`:root`) for the workspace. The landing page defines its own tokens in `frontend/app/landing.css`, scoped to `.lp`. Leftover rules from the first design (Obsidian) remain in `globals.css` and `obsidian.css`; the ones only the old marketing page used were removed.
 - Instrument styles for the workspace: `frontend/app/instrument.css`, loaded last so it wins. Login: `frontend/app/login/login.css`.
 - Components: `frontend/components/ui/` (Button, Field/Input/Select, Notice, Sheet, Stat, StatusTag) and `frontend/components/workspace/` (transactions screen, table, evidence panel, formatters, input-mode hook).
 - The two candidate directions that were compared are kept as labelled artifacts in `docs/refinement/directions/` (they are documentation, not shipped code).
@@ -141,7 +141,7 @@ This system wins wherever a skill's advice disagrees. Decisions already made:
 
 Shipped in Instrument: tokens, Overview, Transactions with the docked evidence pane and sheets, Investigations, Experiments, Data checks, Linked accounts, Evidence search, onboarding and import, login, session-expiry and unreachable-API states, motion, and the accessibility and consistency checks in `execution/ui_check.mjs`.
 
-The landing page (`/`) was rebuilt in the Trace direction (section 11).
+The landing page (`/`) was redesigned as "Lightbox" (section 11).
 
 Known limits of the shipped design:
 
@@ -151,27 +151,32 @@ Known limits of the shipped design:
 - Native selects clip long option labels; the full value is available in the evidence and context views.
 - Some legacy Obsidian rules remain in `globals.css` and `obsidian.css` and are not tree-shaken per route.
 
-## 11. Landing page ("Trace")
+## 11. Public landing page ("Lightbox")
 
-Mode: Persuade. Code: `frontend/components/landing/*`, `frontend/app/landing.css`, `frontend/app/page.tsx`. Same ground, type and tokens as the workspace; one idea: a signal travels from a transaction through shared entities and evidence into an investigation.
+Mode: Persuade. Code: `frontend/components/landing/*`, `frontend/app/landing.css`, `frontend/app/page.tsx`. Everything is scoped to `.lp` and its own fonts load only on `/`. This replaces the earlier "Trace" direction (lime, thin signal line, stacked heading-plus-cards sections); the workspace keeps Instrument.
+
+Idea: the product is the hero. One lit interface (the real Transactions screen with its inspector, built from the workspace's own labels and the built-in synthetic sample) rises out of perspective under the headline, settles flat, and the page follows one transaction from the queue to a documented case. The composition adapts the reference screenshot's structure (centred display headline, one large lit product object, a floating call-to-action pill on near-black), not any company's branding or claims.
+
+Page structure: one long dark film (hero and product scene, pinned), a short light paper statement, a full-bleed diagram of shared devices, a light numerals section for the model run, two overlapping documents for evidence, and a closing that echoes the hero (queue tilted back into the light, same pill). Dark and light alternate; no two neighbouring sections share a layout.
 
 Visual rules:
 
-- Ground `--bg`, off-white type, one accent. Lime marks the signal, selection and the primary button only. Amber is reserved for flags and risk, cyan for linked entities. No gradients, glows or blanket glass; the nav gets a solid ground and a hairline once the page scrolls.
-- Display type is IBM Plex Sans 500, `clamp(32px, 9.2vw, 112px)`, tracking -0.04em, balanced. Numbers, IDs and metrics are Plex Mono with tabular figures. Nothing under 11px. Sentence case, in line with the workspace.
-- Sections are separated by space and one hairline, not cards. Surfaces appear only where the page shows product (the transactions window, the run summary, the two evidence cards). Previews use real values from the built-in synthetic sample and say so.
-- Copy keeps the product truths: percentile is a rank, runs are batch, synthetic metrics do not estimate real performance, evidence search is keyword matching, sign-in is one shared owner password. No customers, logos, testimonials, compliance badges or live numbers.
+- Ground near-black `#05060b` with a cool tint. Surfaces step up in four levels. One accent, ultraviolet (`#5f4bf5` fill with white text, `#b9afff` as text and line on dark); light is a violet radial glow behind and under the product, never a gradient on text. Risk and status colours are data only: amber for flagged and feature deviation, teal for shared devices, the accent for the selected row. The paper section uses `#ebe8e1` with near-black ink and `#4631e0` for the accent word.
+- Type, four roles: display and body Geist (600 display, tracking about -0.047em, balanced); labels and every figure or ID Geist Mono with tabular figures, labels uppercase at 11px with 0.12em tracking; one italic serif word per headline in Instrument Serif (`em`, in the accent colour). Giant numerals (ROC-AUC) are Geist 600. Nothing under 11px; sentence case.
+- The product object carries authentic detail only: real sidebar groups (Work, Explore, Model), real column names, real top-of-queue rows, percentile bars, IQR deviations, UTC stamps and a "Synthetic sample" chip. The shared-device diagram uses the sample's real clusters (DEV-035, DEV-031, DEV-002, DEV-001).
+- Copy keeps the product truths: percentile is a rank, runs are batch and nothing blocks a payment in real time, synthetic metrics do not estimate real performance, evidence search is deterministic keyword matching, a shared device is a lead, sign-in is one shared owner password. No customers, logos, testimonials or compliance badges.
 - Footer links are only the seven workspace routes.
 
 Motion rules:
 
-- Hero: headline, lede, actions and trace rise in once (720ms, `--ease-out`, staggered 90 to 380ms). Content is visible without script. The trace runs its signal once (4.8s), lights each station as it arrives, plays only while on screen and ends lit, so nothing loops beside the content.
-- Product reveal (`Stage` in `sections.tsx`, one composition, no second animation system): a pinned stage on wide, tall, motion-friendly screens (380vh section, CSS `position: sticky`, native scrolling). `ScrollStage` is the only scroll engine. One passive, rAF-throttled scroll listener turns scroll position into `--p` (0 to 1) and `data-reach` (1 to 4 at 20%, 45% and 72%). Layout is measured on mount, resize, content-size change and `pageshow`, never per frame. React state is never touched per frame.
-- What the scroll does to the one window: it settles from 0.92 scale with a 5deg tilt over the first fifth (smoothstep, `--p`); then one row is selected and the others recede in colour, never opacity; the evidence layer takes the pane (bars grow with `--p`); the linked-entity band lights and its line draws with `--p`; the pane resolves to the investigation layer. A caption names each scene; the left column steps and spine follow. Scrolling back reverses every state.
-- Performance rule: `--p` and its derived values are registered with `@property` (`inherits: false`) and written only onto the few `data-p` elements, so a frame restyles those elements instead of the whole stage. Movement is transform and opacity; no blur, no filters, no layout animation.
-- Emphasis never lowers text contrast: copy keeps AA colours and the stage changes surface, border, position and visibility. Axe is clean at the start, mid and end states.
-- Settle-in for the models and evidence cards: opacity and a 28px rise, once, after script marks the element ready. Press feedback `scale(0.97)`; hover only under `(hover: hover)`.
-- Below 900px wide, under 640px tall and under `prefers-reduced-motion` the stage is plain flow: steps, then the window with the row selected, the evidence and the investigation both visible, and the linked-entity band lit; the hero trace shows a static lit path. No pinning, tilt or animation runs. The trace signal's SVG dash is the one non-transform/opacity motion; it is tiny and one-shot.
-- References used: Motion's scroll docs (progress 0 to 1 tied to scroll, pin with `position: sticky`, measure layout rather than transformed boxes, return a cleanup) and two Behance fraud dashboards viewed as stills (a single large product object framed by sparse type and one accent; a dense table beside a "top contributors" bar list, which became the evidence reasons). No library was added.
+- One scroll-linked system. `ScrollStage` (client) writes `--p` (0 to 1) onto the few `data-p` elements and `data-reach` (1 to 4 at 22%, 48% and 74%) onto the film from one passive, rAF-throttled listener that exists only while the film is near the viewport. Layout is measured on mount, resize, content-size change and `pageshow`, never per frame. No React state changes per frame.
+- Layout switch: `html[data-lp="pin"]` pins the film (410svh, CSS `position: sticky`, native scrolling); `html[data-lp="flow"]`, or no attribute, is the flow layout. A tiny inline script sets the attribute before first paint from `PIN_QUERY` (min-width 900px, min-height 640px, no reduced motion); `ScrollStage` keeps it current and removes it on unmount. If a deployed host forbids inline scripts, the page still works and switches layout once after hydration.
+- Sequence: 0 to 30% the product rises out of a 36deg perspective tilt and 0.86 scale to flat (smoothstep on `--p`; a violet glow dims, a sheen fades, the headline and pill leave over the first 14%, the rail of four stages arrives); from 22% one row is selected and the rest recede in colour, never opacity, with context in the inspector (deviation bars grow with `--p`); from 48% a linked-accounts sheet rises over the queue and its wire draws with `--p`; from 74% the inspector resolves to the investigation record. Scrolling back reverses every state; a scroll position always gives the same picture.
+- Performance: `--p` and derived values are registered with `@property` (`inherits: false`) and used only on the element that holds them (pseudo-elements do not inherit non-inheriting properties, so every scroll-driven part is a real element). Movement is transform and opacity; no blur, no filters, no layout animation. The product is layered once (`will-change: transform`) and only transformed.
+- Short viewports shrink the scene instead of scrolling it: at 820px tall or less the queue shows six rows, at 720px or less five rows and no rail captions.
+- Below the film, sections settle in once (opacity and a 32px rise) after script marks them ready; the shared-device edges draw once. Press feedback `scale(0.97)`; hover only under `(hover: hover)`.
+- Flow layout (under 900px wide, under 640px tall, reduced motion, or no script): headline, pill, then the same product recomposed by its own width (container queries drop the sidebar, then the merchant and review columns, then stack the inspector), with the queue, linked accounts, evidence and investigation all visible, then the four stages as a numbered list. No tilt, pinning or animation runs. The shared-device diagram becomes a small DEV-035 drawing plus a list.
+- Accessibility: the product object is `role="img"` with one reading; headings run h1, then one h2 per section; focus rings are visible on every stop; anchors clear the sticky nav (`scroll-padding-top`, `scroll-margin-top`). The hero pill is hidden once the film leaves the first scene, and the nav action stays reachable.
+- References: the supplied product-page screenshot (primary composition), a Behance fraud dashboard viewed as stills (one large product object, one accent, sparse type) and Motion's scroll docs (progress tied to scroll, pin with sticky, measure layout, clean up listeners). No animation library is used.
 
-Checks: `node execution/landing_check.mjs --base <url>` (against a production build) covers the scroll engine, offscreen pausing, reduced motion, nav, anchors, links, axe and the mobile menu. Screenshots: `docs/refinement/screenshots/landing/`.
+Checks: `node execution/landing_check.mjs --base <url>` (against a production build) covers layout selection, the first screen, the scene states, reversal, resize, anchors, load-at-anchor, back navigation, keyboard, reduced motion, short windows, overflow at six widths, axe in every state, links and the mobile menu. Screenshots: `docs/refinement/screenshots/landing/` (`before/` is the Trace page, `after/` the redesign).

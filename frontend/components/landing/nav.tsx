@@ -1,11 +1,11 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { ArrowUpRight, Menu, X } from "lucide-react";
-import { Brand } from "@/components/brand";
+import { ArrowUpRight, Menu, ScanLine, X } from "lucide-react";
 
 const links = [
   { href: "#product", label: "Product" },
+  { href: "#trace", label: "Linked accounts" },
   { href: "#models", label: "Models" },
   { href: "#evidence", label: "Evidence" },
 ];
@@ -49,7 +49,9 @@ export function Nav() {
       <header className="lp-nav" data-scrolled={scrolled || open ? "true" : "false"}>
         <div className="lp-nav-inner">
           <Link href="/" className="lp-brand">
-            <Brand />
+            <ScanLine size={22} aria-hidden="true" />
+            <span>finsight</span>
+            <span className="lp-brand-ai">AI</span>
           </Link>
           <nav className="lp-nav-links" aria-label="Sections">
             {links.map((l) => (
@@ -57,7 +59,7 @@ export function Nav() {
             ))}
           </nav>
           <div className="lp-nav-actions">
-            <Link prefetch={false} href="/app/overview" className="lp-btn lp-btn-quiet">
+            <Link prefetch={false} href="/app/overview" className="lp-btn lp-btn-nav">
               Open workspace <ArrowUpRight size={16} aria-hidden="true" />
             </Link>
             <button

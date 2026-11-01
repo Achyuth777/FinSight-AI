@@ -1,24 +1,28 @@
 "use client";
 import { useEffect, useRef } from "react";
+import { PIN_QUERY } from "./pin";
 
-// Scroll engine for the pinned product reveal (the only scroll-linked system on the page).
+// Scroll engine for the pinned product film (the only scroll-linked system on the page).
 // Native scrolling and CSS `position: sticky` do the pinning. One passive scroll listener, throttled by
-// requestAnimationFrame, turns scroll position into two things on the section element:
+// requestAnimationFrame, turns scroll position into two things:
 //   --p          0 to 1 progress through the pinned range, read by CSS for the continuous parts. It is written onto the
 //                few elements marked data-p (a non-inheriting registered property), not onto the section, so a frame
 //                restyles those elements and not the whole subtree.
-//   data-reach   which scene is current (1 to N, by `cuts`), written only when it changes, read by CSS transitions
+//   data-reach   which scene is current (1 to N, by `cuts`), written on the section only when it changes, read by CSS
+//                transitions for the discrete parts
 // Both are pure functions of scroll position, so scrolling back up reverses everything exactly. No React state.
 // Layout is measured once and when it can change (resize, content size), never per frame. The listener exists only
-// while the section is near the viewport, and only in the pinned layout (wide, tall, motion allowed).
-// Everywhere else the section is a static, fully revealed layout and this component does nothing.
-export function ScrollStage({ id, cuts, className, children }: { id: string; cuts: number[]; className?: string; children: React.ReactNode }) {
+// while the section is near the viewport, and only in the pinned layout.
+// The pinned layout is switched on with html[data-lp="pin"], the flow layout (everything visible, nothing pinned or
+// animated by scroll) with html[data-lp="flow"]; without script neither is set and the flow layout applies.
+export function ScrollStage({ id, cuts, className, labelledBy, children }: { id: string; cuts: number[]; className?: string; labelledBy: string; children: React.ReactNode }) {
   const ref = useRef<HTMLElement>(null);
 
   useEffect(() => {
     const el = ref.current;
     if (!el) return;
-    const pinned = window.matchMedia("(min-width: 900px) and (min-height: 640px) and (prefers-reduced-motion: no-preference)");
+    const root = document.documentElement;
+    const pinned = window.matchMedia(PIN_QUERY);
     let frame = 0;
     let listening = false;
     let top = 0;
@@ -76,15 +80,18 @@ export function ScrollStage({ id, cuts, className, children }: { id: string; cut
 
     const mode = () => {
       if (pinned.matches) {
+        root.dataset.lp = "pin";
         measure();
         update(); // correct state immediately, including when the page loads at an anchor below the section
         io.observe(el);
-        ro.observe(document.documentElement);
+        ro.observe(root);
       } else {
+        root.dataset.lp = "flow";
         io.disconnect();
         ro.disconnect();
         stop();
         delete el.dataset.p;
+        el.dataset.reach = "1";
         for (const t of targets) t.style.removeProperty("--p");
       }
     };
@@ -98,11 +105,12 @@ export function ScrollStage({ id, cuts, className, children }: { id: string; cut
       ro.disconnect();
       stop();
       if (frame) cancelAnimationFrame(frame);
+      delete root.dataset.lp; // client navigation to the workspace must not inherit the landing layout switch
     };
   }, [cuts]);
 
   return (
-    <section ref={ref} id={id} className={className} aria-labelledby="product-title" data-reach="1">
+    <section ref={ref} id={id} className={className} aria-labelledby={labelledBy} data-reach="1">
       {children}
     </section>
   );
