@@ -1,6 +1,6 @@
 import "./landing.css";
 import { Nav } from "@/components/landing/nav";
-import { Closing, Evidence, Footer, Hero, Models, Product, Workflow } from "@/components/landing/sections";
+import { Closing, Evidence, Footer, Hero, Models, Stage } from "@/components/landing/sections";
 
 export default function Home() {
   return (
@@ -9,8 +9,7 @@ export default function Home() {
       <Nav />
       <main id="main">
         <Hero />
-        <Product />
-        <Workflow />
+        <Stage />
         <Models />
         <Evidence />
         <Closing />

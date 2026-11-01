@@ -1,13 +1,14 @@
 // Landing page behaviour checks (scroll engine, offscreen pause, reduced motion, nav, links, axe, mobile menu).
-// Needs the production build served on 127.0.0.1:3000 (npm run build && npm run start, in frontend/).
-// Usage: node execution/landing_check.mjs
+// Needs the production build served (npm run build && npm run start -- --port N, in frontend/).
+// Usage: node execution/landing_check.mjs [--base http://127.0.0.1:3000/]
 // Behavioural checks for the landing page: scroll engine, offscreen pausing, reduced motion, nav, links, axe.
 import { createRequire } from "node:module";
 import { readFileSync } from "node:fs";
 const require = createRequire(import.meta.url);
 const { chromium } = require("../frontend/node_modules/playwright-core");
 const axeSrc = readFileSync(require.resolve("../frontend/node_modules/axe-core/axe.min.js"), "utf8");
-const URL = "http://127.0.0.1:3000/";
+const args = process.argv.slice(2);
+const URL = (args.includes("--base") ? args[args.indexOf("--base") + 1] : "http://127.0.0.1:3000").replace(/\/?$/, "/");
 const results = [];
 const check = (name, ok, extra = "") => { results.push(ok); console.log(ok ? "PASS" : "FAIL", name, extra); };
 const b = await chromium.launch({ channel: "chrome" });
@@ -27,20 +28,23 @@ const b = await chromium.launch({ channel: "chrome" });
   p.on("pageerror", (e) => errors.push(String(e)));
   await p.goto(URL, { waitUntil: "networkidle" });
   await p.waitForTimeout(1200);
-  const flow = await p.evaluate(() => { const r = document.querySelector("#workflow"); return { top: r.getBoundingClientRect().top + scrollY, h: r.offsetHeight }; });
+  const flow = await p.evaluate(() => { const r = document.querySelector("#product"); return { top: r.getBoundingClientRect().top + scrollY, h: r.offsetHeight }; });
   const range = flow.h - 800;
   const jump = (y) => p.evaluate((v) => scrollTo({ top: v, behavior: "instant" }), y);
-  const read = () => p.evaluate(() => { const s = document.querySelector("#workflow"); return { reach: s.dataset.reach, pv: parseFloat(s.style.getPropertyValue("--p") || "NaN"), listeners: window.__scroll }; });
+  const read = () => p.evaluate(() => { const s = document.querySelector("#product"); return { reach: s.dataset.reach, pv: parseFloat(s.dataset.p || "NaN"), listeners: window.__scroll }; });
 
-  check("scroll listener inactive at top", (await read()).listeners === 0, String((await read()).listeners));
   await jump(flow.top - 300); await p.waitForTimeout(300);
   check("scroll listener active near the section", (await read()).listeners === 1);
+  const far = await p.evaluate(() => document.querySelector("#evidence").getBoundingClientRect().top + scrollY);
+  await jump(far); await p.waitForTimeout(300);
+  check("scroll listener inactive when the section is far away", (await read()).listeners === 0, String((await read()).listeners));
+  await jump(flow.top - 300); await p.waitForTimeout(300);
 
   // DOM mutations during a scrub: only attribute changes on the section are allowed (no React re-render of children).
   await p.evaluate(() => {
     window.__mut = { child: 0, attr: 0 };
     new MutationObserver((l) => l.forEach((m) => { if (m.type === "childList") window.__mut.child++; else window.__mut.attr++; }))
-      .observe(document.querySelector("#workflow"), { subtree: true, childList: true, attributes: true, attributeFilter: ["data-reach", "style"] });
+      .observe(document.querySelector("#product"), { subtree: true, childList: true, attributes: true, attributeFilter: ["data-reach", "style"] });
   });
   const seq = [];
   for (let i = 0; i <= 20; i++) { await jump(flow.top + range * (i / 20)); await p.waitForTimeout(40); seq.push(await read()); }
@@ -58,9 +62,28 @@ const b = await chromium.launch({ channel: "chrome" });
 
   // Computed emphasis follows reach
   await jump(flow.top + range * 0.6); await p.waitForTimeout(500);
-  const ops = await p.evaluate(() => [...document.querySelectorAll(".lp-panel")].map((e) => { const s = getComputedStyle(e); return s.borderColor + "|" + s.backgroundColor; }));
-  check("panel emphasis: current accent border, past surface, future transparent", ops[2].startsWith("rgba(213, 247, 139") && !ops[0].startsWith("rgba(213") && ops[3].endsWith("rgba(0, 0, 0, 0)"), ops.join(" ; "));
+  const scene = await p.evaluate(() => {
+    const q = (sel) => document.querySelector(sel);
+    const rows = [...document.querySelectorAll(".lp-row")].map((e) => getComputedStyle(e.querySelector(".lp-mono")).color);
+    return {
+      reach: q("#product").dataset.reach,
+      select: +getComputedStyle(q(".lp-select")).opacity,
+      evidence: +getComputedStyle(q(".lp-layer-evidence")).opacity,
+      kase: +getComputedStyle(q(".lp-layer-case")).opacity,
+      idle: +getComputedStyle(q(".lp-layer-idle")).opacity,
+      first: rows[0], other: rows[1],
+      cap: [...document.querySelectorAll(".lp-cap span")].map((e) => +getComputedStyle(e).opacity).join(","),
+    };
+  });
+  check("scene 3: row selected, evidence and linked entities shown, case hidden", scene.reach === "3" && scene.select === 1 && scene.evidence === 1 && scene.kase === 0 && scene.idle === 0 && scene.first !== scene.other && scene.cap === "0,0,1,0", JSON.stringify(scene));
 
+  // axe in the mid and end states of the reveal (earlier runs cover the start state)
+  await p.evaluate(axeSrc);
+  for (const f of [0.35, 0.6, 0.95]) {
+    await jump(flow.top + range * f); await p.waitForTimeout(500);
+    const v = await p.evaluate(async () => (await axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"] })).violations.map((x) => x.id + ": " + x.nodes.map((n) => n.target.join(" ")).slice(0, 2).join(" | ")));
+    check(`axe clean at reveal progress ${f}`, v.length === 0, JSON.stringify(v));
+  }
   await jump(flow.top + flow.h + 400); await p.waitForTimeout(400);
   check("scroll listener removed after leaving section", (await read()).listeners === 0, String((await read()).listeners));
 
@@ -78,7 +101,7 @@ const b = await chromium.launch({ channel: "chrome" });
   check("nav treatment changes on scroll", navTop === "false" && navScrolled === "true", `${navTop} -> ${navScrolled}`);
 
   // Anchor offsets
-  for (const id of ["product", "workflow", "models", "evidence"]) {
+  for (const id of ["product", "models", "evidence"]) {
     await jump(0);
     await p.click(`.lp-nav-links a[href="#${id}"]`);
     await p.waitForTimeout(1400);
@@ -120,16 +143,17 @@ const b = await chromium.launch({ channel: "chrome" });
   await p.goto(URL, { waitUntil: "networkidle" });
   await p.waitForTimeout(600);
   const r = await p.evaluate(() => ({
-    flowH: document.querySelector("#workflow").offsetHeight,
+    flowH: document.querySelector("#product").offsetHeight,
     sticky: getComputedStyle(document.querySelector(".lp-flow-pin")).position,
-    panels: [...document.querySelectorAll(".lp-panel")].map((e) => getComputedStyle(e).backgroundColor !== "rgba(0, 0, 0, 0)"),
+    panels: [...document.querySelectorAll(".lp-layer-evidence, .lp-layer-case, .lp-select")].map((e) => +getComputedStyle(e).opacity === 1),
     steps: [...document.querySelectorAll(".lp-step")].map((e) => +getComputedStyle(e).opacity),
+    idle: getComputedStyle(document.querySelector(".lp-layer-idle")).display,
     hidden: document.querySelectorAll("[data-reveal][data-ready]:not([data-in])").length,
     anim: document.getAnimations().filter((a) => a.playState === "running").length,
     signal: getComputedStyle(document.querySelector(".lp-trace-signal")).strokeDasharray,
     bars: [...document.querySelectorAll(".lp-bar > span")].map((e) => getComputedStyle(e).transform),
   }));
-  check("reduced motion: not pinned, everything fully visible", r.sticky === "static" && r.flowH < 1800 && r.panels.every(Boolean) && r.steps.every((o) => o === 1) && r.hidden === 0, JSON.stringify({ flowH: r.flowH, sticky: r.sticky, hidden: r.hidden }));
+  check("reduced motion: not pinned, everything fully visible", r.sticky === "static" && r.flowH < 2200 && r.panels.every(Boolean) && r.steps.every((o) => o === 1) && r.idle === "none" && r.hidden === 0, JSON.stringify({ flowH: r.flowH, sticky: r.sticky, hidden: r.hidden }));
   check("reduced motion: no running animations", r.anim === 0, String(r.anim));
   check("reduced motion: static signal path and full bars", r.signal === "none" && r.bars.every((t) => t === "none"), `${r.signal} ${r.bars}`);
   await ctx.close();

@@ -6,7 +6,6 @@ import { Brand } from "@/components/brand";
 
 const links = [
   { href: "#product", label: "Product" },
-  { href: "#workflow", label: "Workflow" },
   { href: "#models", label: "Models" },
   { href: "#evidence", label: "Evidence" },
 ];

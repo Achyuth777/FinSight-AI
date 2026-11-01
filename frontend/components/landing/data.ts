@@ -36,10 +36,10 @@ export const searchResults = [
 ] as const;
 
 export const steps = [
-  { title: "Detect unusual behavior", body: "An Isolation Forest ranks every row against the training window. The queue opens with the highest anomaly percentiles.", benefit: "Start with the rows most worth a look." },
-  { title: "Inspect the context", body: "See which features sit far from the training median, in IQR units, beside the account's earlier transactions.", benefit: "Know why a row stands out before you act." },
-  { title: "Connect the evidence", body: "Accounts that used the same device identifier are linked. A link means shared use. It does not prove fraud.", benefit: "See who else touched the same device." },
-  { title: "Document the investigation", body: "Open an investigation, write notes and set a status: open, reviewing, cleared or escalated. Each change is stored with its UTC time.", benefit: "Leave a trail someone else can follow." },
+  { title: "Detect unusual behavior", body: "An Isolation Forest ranks every row. The queue opens on the highest percentiles.", benefit: "Start with the rows most worth a look." },
+  { title: "Inspect the context", body: "See which features sit far from the training median, in IQR units.", benefit: "Know why a row stands out before you act." },
+  { title: "Connect the evidence", body: "Accounts sharing a device identifier are linked. A link is not proof of fraud.", benefit: "See who else touched the same device." },
+  { title: "Document the investigation", body: "Open an investigation, add notes, set a status. Each change is stored with its UTC time.", benefit: "Leave a trail someone else can follow." },
 ] as const;
 
 export const workspaceLinks = [
