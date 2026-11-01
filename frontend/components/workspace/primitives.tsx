@@ -31,33 +31,6 @@ export function Score({ tx, threshold }: { tx: Tx; threshold?: number }) {
   );
 }
 
-export function Panel({
-  title,
-  subtitle,
-  children,
-  action,
-  className = "",
-}: {
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-  action?: React.ReactNode;
-  className?: string;
-}) {
-  return (
-    <section className={"panel " + className}>
-      <div className="panel-head">
-        <div>
-          <h2>{title}</h2>
-          {subtitle && <p>{subtitle}</p>}
-        </div>
-        {action}
-      </div>
-      {children}
-    </section>
-  );
-}
-
 // A value that cannot be computed is stated, never shown as zero.
 export function Unavailable({ reason }: { reason: string }) {
   return <span className="unavailable">Unavailable: {reason}</span>;
@@ -77,12 +50,12 @@ export function MetricCards({ metrics, source }: { metrics: Metrics; source: str
       </p>
       {!metrics.available ? (
         <div className="notice">
-          <Info size={18} />
-          Unavailable: {metrics.reason}
+          <Info size={16} aria-hidden="true" />
+          <span className="notice-text">Unavailable: {metrics.reason}</span>
         </div>
       ) : (
         <>
-          <div className="stat-grid">
+          <div className="stat-grid metric-grid">
             {[
               ["ROC-AUC", metrics.roc_auc],
               ["Average precision", metrics.average_precision],
@@ -100,5 +73,24 @@ export function MetricCards({ metrics, source }: { metrics: Metrics; source: str
         </>
       )}
     </>
+  );
+}
+
+// Held-out confusion matrix as a 2x2 grid: rows are the true label, columns the model's call.
+export function Confusion({ matrix }: { matrix: number[][] }) {
+  const cells: [string, number, string][] = [
+    ["True negatives", matrix[0][0], ""],
+    ["False positives", matrix[0][1], "off"],
+    ["False negatives", matrix[1][0], "off"],
+    ["True positives", matrix[1][1], "hit"],
+  ];
+  return (
+    <div className="confusion" role="group" aria-label="Held-out confusion matrix">
+      {cells.map(([name, v, tone]) => (
+        <span key={name} className={tone}>
+          {name} <b>{v.toLocaleString("en-IN")}</b>
+        </span>
+      ))}
+    </div>
   );
 }

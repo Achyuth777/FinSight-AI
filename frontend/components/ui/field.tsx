@@ -15,6 +15,11 @@ export function Input({ label, hint, error, className, id: given, ...props }: Co
   const id = given || auto;
   return wrap(id, { label, hint, error, className }, <input id={id} aria-invalid={error ? true : undefined} aria-describedby={error || hint ? id + "-msg" : undefined} {...props} />);
 }
+export function Textarea({ label, hint, error, className, id: given, ...props }: Common & Omit<React.ComponentProps<"textarea">, "className">) {
+  const auto = useId();
+  const id = given || auto;
+  return wrap(id, { label, hint, error, className }, <textarea id={id} aria-invalid={error ? true : undefined} aria-describedby={error || hint ? id + "-msg" : undefined} {...props} />);
+}
 // Native select: the correct menu on phones, keyboard-complete, no dependency.
 export function Select({ label, hint, error, className, options, id: given, ...props }: Common & Omit<React.ComponentProps<"select">, "className"> & { options: string[][] }) {
   const auto = useId();

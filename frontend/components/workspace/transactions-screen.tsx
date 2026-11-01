@@ -8,7 +8,7 @@ import { Notice } from "../ui/notice";
 import { Sheet, SheetDescription, SheetTitle } from "../ui/sheet";
 import type { Case, Run, Tx } from "../types";
 import { EvidencePanel } from "./evidence-panel";
-import { Panel } from "./primitives";
+import { Panel } from "../ui/panel";
 import { TransactionTable } from "./transaction-table";
 import { useMediaQuery } from "./use-media-query";
 
@@ -21,7 +21,7 @@ export function TransactionsScreen({
   run, loading, cases, busy, error, initialRisk, onCreateCase, onOpenCase,
 }: {
   run: Run | null; loading: boolean; cases: Case[]; busy: string; error: string; initialRisk?: string;
-  onCreateCase: (tx: Tx) => void; onOpenCase: (id: string) => void;
+  onCreateCase: (tx: Tx) => void; onOpenCase?: (id: string) => void;
 }) {
   const params = useSearchParams();
   const [f, setF] = useState<Filters>({ ...DEFAULTS, risk: initialRisk || "all", query: params.get("q") || "" });
@@ -122,7 +122,7 @@ export function TransactionsScreen({
           <div className="field tx-search">
             <label htmlFor="tx-search">Search</label>
             <div className="search-input">
-              <Search size={16} aria-hidden="true" />
+              <Search size={15} aria-hidden="true" />
               <input id="tx-search" type="search" name="transaction-search" autoComplete="off" spellCheck={false} placeholder="ID, account, merchant, device" value={f.query} onChange={(e) => update({ query: e.target.value })} />
             </div>
           </div>

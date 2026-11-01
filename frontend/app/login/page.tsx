@@ -4,7 +4,7 @@ import { useEffect, useState, type FormEvent } from "react";
 import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Brand } from "@/components/brand";
 import { Notice } from "@/components/ui/notice";
-import "./login.css";
+import "../workspace.css";
 
 export default function LoginPage() {
   const [password, setPassword] = useState("");
@@ -34,17 +34,18 @@ export default function LoginPage() {
     }
   }
   return (
-    <main className="login-shell">
+    <main className="ws login-shell">
+      <div className="login-glow" aria-hidden="true" />
       <div className="login-card">
         <Link href="/" className="login-brand" aria-label="FinSight home"><Brand /></Link>
-        <h1>Sign in</h1>
+        <h1>Sign in to the <em>workspace</em></h1>
         <p>Single-analyst workspace for reviewing flagged transactions. Enter the workspace password set by the owner.</p>
         {returnTo && <Notice>Sign in to continue to {returnTo}.</Notice>}
         <form onSubmit={signIn}>
           <div className="field">
             <label htmlFor="workspace-password">Workspace password</label>
             <div className="login-password-field">
-              <input id="workspace-password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={16} autoComplete="current-password" aria-describedby="password-hint" aria-invalid={error ? true : undefined} />
+              <input id="workspace-password" name="password" type={showPassword ? "text" : "password"} value={password} onChange={(event) => setPassword(event.target.value)} required minLength={16} autoComplete="current-password" aria-describedby="password-hint" aria-invalid={error ? true : undefined} />
               <button type="button" className="login-password-toggle" aria-label={showPassword ? "Hide password" : "Show password"} aria-pressed={showPassword} aria-controls="workspace-password" onClick={() => setShowPassword((visible) => !visible)}>
                 {showPassword ? <EyeOff size={18} aria-hidden="true" /> : <Eye size={18} aria-hidden="true" />}
               </button>
@@ -56,7 +57,12 @@ export default function LoginPage() {
             {busy ? <><Loader2 className="spin" size={17} aria-hidden="true" /> Checking…</> : <>Continue <ArrowRight size={17} aria-hidden="true" /></>}
           </button>
         </form>
-        <p className="login-footer">Sessions last 12 hours. The workspace never makes or blocks payments.</p>
+        <ul className="login-facts">
+          <li>Batch analysis of a synthetic sample or your own CSV.</li>
+          <li>Scores rank rows. They are not fraud probabilities.</li>
+          <li>The workspace never makes or blocks payments.</li>
+        </ul>
+        <p className="login-footer">Sessions last 12 hours.</p>
       </div>
       <Link href="/" className="login-back">← Back to the FinSight AI website</Link>
     </main>

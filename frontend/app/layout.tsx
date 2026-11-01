@@ -1,25 +1,16 @@
 import "./globals.css";
-import "./obsidian.css";
-import "./instrument.css";
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Instrument_Serif } from "next/font/google";
 
-// Direction B (Instrument): Plex Sans for text, Plex Mono for figures and IDs.
+// Geist for interface text, Geist Mono for figures and identifiers. The landing page and the workspace share them.
 // next/font self-hosts both, so the running app makes no request to Google.
-const sans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-sans",
-  display: "swap",
-});
-const mono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-mono",
-  display: "swap",
-});
+const sans = Geist({ subsets: ["latin"], variable: "--font-sans", display: "swap" });
+const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono", display: "swap" });
 
-export const viewport: Viewport = { themeColor: "#0b0e13", colorScheme: "dark" };
+// One italic serif word for the occasional non-operational headline (sign-in, first use). Never used in tables or controls.
+const serif = Instrument_Serif({ subsets: ["latin"], weight: "400", style: "italic", variable: "--font-serif", display: "swap" });
+
+export const viewport: Viewport = { themeColor: "#05060b", colorScheme: "dark" };
 
 export const metadata: Metadata = {
   title: "FinSight AI — See the signal.",
@@ -32,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={sans.variable + " " + mono.variable} suppressHydrationWarning>
+    <html lang="en" className={sans.variable + " " + mono.variable + " " + serif.variable} suppressHydrationWarning>
       <body>{children}</body>
     </html>
   );

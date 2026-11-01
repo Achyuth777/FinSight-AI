@@ -35,7 +35,7 @@ export function TransactionTable({
             : items.map((t) => {
                 const k = caseByTx.get(t.transaction_id);
                 return (
-                  <tr key={t.transaction_id} data-tx-id={t.transaction_id} className={t.transaction_id === selectedId ? "is-selected" : ""}>
+                  <tr key={t.transaction_id} data-tx-id={t.transaction_id} className={(t.transaction_id === selectedId ? "is-selected " : "") + (t.flagged ? "is-flagged" : "")}>
                     <td className="c-id">
                       <button className="id-button" title={t.transaction_id} aria-pressed={t.transaction_id === selectedId} onClick={() => onSelect(t)}>
                         {t.transaction_id}

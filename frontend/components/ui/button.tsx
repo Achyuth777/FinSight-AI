@@ -2,6 +2,7 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 const variantClass = { default: "primary", outline: "outline", ghost: "ghost" };
 const sizeClass = { default: "", sm: "small" };
+// The one button. Primary is the single main action of a surface; outline is secondary; ghost is tertiary.
 export function Button({
   className,
   variant = "default",

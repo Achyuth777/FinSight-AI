@@ -18,12 +18,15 @@
   color: var(--fg);
   font-family: var(--lp-sans), system-ui, sans-serif;
   font-size: 16px;
+  line-height: 1.5;
+  letter-spacing: -0.008em;
   overflow-x: clip;
   min-height: 100vh;
   color-scheme: dark;
   -webkit-font-smoothing: antialiased;
 }
 .lp *, .lp *::before, .lp *::after { box-sizing: border-box; }
+:where(.lp) :is(a, button, summary) { cursor: pointer; transition: background-color 0.12s ease, color 0.12s ease, border-color 0.12s ease; }
 .lp :focus-visible { outline: 2px solid var(--accent-hi); outline-offset: 3px; border-radius: 6px; }
 .lp-paper :focus-visible { outline-color: var(--paper-accent); }
 .lp ::selection { background: var(--accent); color: #fff; }

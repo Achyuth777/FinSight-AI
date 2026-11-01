@@ -1,7 +1,7 @@
 import Link from "next/link";
 // One figure with its label and the fact that qualifies it. Optional href makes the whole tile a link.
-// Values wrap rather than clip, so large rupee amounts stay readable on a phone.
-export function Stat({ label, value, note, href, onClick }: { label: string; value: React.ReactNode; note?: React.ReactNode; href?: string; onClick?: () => void }) {
+// Values stay on one line and scale with the tile, so large rupee amounts stay readable on a phone.
+export function Stat({ label, value, note, href, onClick, tone }: { label: string; value: React.ReactNode; note?: React.ReactNode; href?: string; onClick?: () => void; tone?: "flag" }) {
   const body = (
     <>
       <span className="stat-label">{label}</span>
@@ -9,15 +9,16 @@ export function Stat({ label, value, note, href, onClick }: { label: string; val
       {note && <small className="stat-note">{note}</small>}
     </>
   );
+  const cls = "stat" + (tone ? " tone-" + tone : "");
   return href ? (
-    <Link className="stat is-link" href={href} onClick={onClick}>{body}</Link>
+    <Link className={cls + " is-link"} href={href} onClick={onClick}>{body}</Link>
   ) : (
-    <div className="stat">{body}</div>
+    <div className={cls}>{body}</div>
   );
 }
 
 // Horizontal share bars: label, bar, count and share. Replaces decorative donuts.
-export function ShareBars({ rows, total, label }: { rows: { name: string; value: number }[]; total: number; label: string }) {
+export function ShareBars({ rows, total, label }: { rows: { name: string; value: number; tone?: "flag" }[]; total: number; label: string }) {
   return (
     <ul className="share-bars" aria-label={label}>
       {rows.map((r) => {
@@ -25,7 +26,7 @@ export function ShareBars({ rows, total, label }: { rows: { name: string; value:
         return (
           <li key={r.name}>
             <span className="share-name">{r.name}</span>
-            <span className="share-track" aria-hidden="true"><i style={{ width: share + "%" }} /></span>
+            <span className={"share-track" + (r.tone ? " tone-" + r.tone : "")} aria-hidden="true"><i style={{ width: share + "%" }} /></span>
             <span className="share-num mono">{r.value.toLocaleString("en-IN")} <small>{total ? share.toFixed(1) + "%" : "n/a"}</small></span>
           </li>
         );

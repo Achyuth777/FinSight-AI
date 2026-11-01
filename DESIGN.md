@@ -1,159 +1,159 @@
-# FinSight AI design system: Instrument
+# FinSight AI design system: Lightbox
 
-Status: shipped. Direction B ("Instrument") was chosen over A ("Ledger") and now covers the whole analyst workspace (`/app/*`) and the login page. The public landing page (`/`) is a separate art direction, "Lightbox", with its own palette and type (section 11). The workspace rules in sections 1 to 10 do not apply to it.
+Status: shipped. One art direction, "Lightbox", covers the public landing page (`/`, section 11) and the analyst workspace (`/app/*`) with the sign-in page (`/login`, sections 1 to 10). The landing page is Persuade mode and spends the direction on cinema (a pinned product film, one italic serif word per headline). The workspace is Operate mode: the same ground, violet, type and product preview, adapted for daily use, with nothing cinematic. This replaces the earlier lime "Instrument" workspace.
 
 Where things live:
 
-- Tokens: `frontend/app/globals.css` (`:root`) for the workspace. The landing page defines its own tokens in `frontend/app/landing.css`, scoped to `.lp`. Leftover rules from the first design (Obsidian) remain in `globals.css` and `obsidian.css`; the ones only the old marketing page used were removed.
-- Instrument styles for the workspace: `frontend/app/instrument.css`, loaded last so it wins. Login: `frontend/app/login/login.css`.
-- Components: `frontend/components/ui/` (Button, Field/Input/Select, Notice, Sheet, Stat, StatusTag) and `frontend/components/workspace/` (transactions screen, table, evidence panel, formatters, input-mode hook).
-- The two candidate directions that were compared are kept as labelled artifacts in `docs/refinement/directions/` (they are documentation, not shipped code).
-- Tailwind is still installed for its preflight reset only. The app uses none of its utility classes; removing it changed 15 of 18 reference screenshots, so replacing the reset is a separate, deliberate task.
+- Workspace and sign-in styles: `frontend/app/workspace.css`, one stylesheet scoped to `.ws` (the app shell, the sign-in page, and the sheet and overlay that portal to `<body>`). It holds the tokens, base, components and every screen. It replaced `globals.css` workspace rules, `obsidian.css`, `instrument.css` and `login/login.css`.
+- Landing styles: `frontend/app/landing.css`, scoped to `.lp`. It re-declares the same token names, so nothing in the workspace stylesheet can reach it.
+- `frontend/app/globals.css` is only the Tailwind reset, `box-sizing` and the page background. Tailwind is installed for its preflight reset only; the app uses none of its utility classes.
+- Fonts load once in `frontend/app/layout.tsx`: Geist (`--font-sans`), Geist Mono (`--font-mono`) and Instrument Serif italic (`--font-serif`), self-hosted by `next/font`. The landing page still declares its own `--lp-*` copies so it stays self-contained.
+- Shared components: `frontend/components/ui/` (Button, Field/Input/Select/Textarea, Notice, Sheet, Stat and ShareBars, StatusTag, Panel and EmptyState) and `frontend/components/brand.tsx`.
+- Workspace feature code: `frontend/components/workspace.tsx` picks the screen for a route; `components/workspace/use-workspace.ts` holds the shared state and API actions; `shell.tsx` draws navigation, the run strip, feedback and first-use states; `screens/` holds Overview, Investigations, Linked accounts, Experiments, Data checks and Evidence search; `transactions-screen.tsx`, `transaction-table.tsx` and `evidence-panel.tsx` are the review workspace.
+- The two earlier candidate directions (Ledger, Instrument) are kept as labelled documentation in `docs/refinement/directions/`.
 
 ## 1. Intent
 
-A fraud analyst reviews transactions for hours. The interface is an instrument panel: quiet graphite, dense but legible, figures that line up, one accent that means "data" or "this is selected". Nothing decorates; everything either carries information or helps find it.
+A fraud analyst reviews transactions for hours. The workspace is the product the landing page shows: deep ink, one violet accent, a queue on the left and an inspector on the right. It is dense but legible, figures line up, and violet means "this is the selection, the action, or the main series". Nothing decorates; everything either carries information or helps find it.
 
 Product truths the UI must never contradict:
 
 - Currency is INR, times are UTC. Both are always labelled.
 - Anomaly percentile ranks a row against training scores. It is not a fraud probability.
-- "What stands out" lists feature deviations from training medians. It is not SHAP or model attribution.
+- "What stands out" lists feature deviations from training medians. It is not SHAP or model attribution, and it does not explain cause.
 - Metrics on synthetic data do not estimate production performance; the caveat sits above every metric block.
-- Evidence search is deterministic, cited keyword search. Analysis is batch, not streaming.
+- Evidence search is deterministic, cited keyword search. It is not a chat and not a language model. Analysis is batch, not streaming.
+- A shared device is a lead to check, not proof of fraud.
 - A value that cannot be computed reads `Unavailable: <reason>`, never `0`.
-- No relative times ("2 hours ago"), no "AI" wording, no fake live activity, invented logos or metrics, and no control for a feature that does not exist.
+- No relative times ("2 hours ago"), no fake live activity, invented logos or metrics, and no control for a feature that does not exist (the linked-accounts diagram has no pan or zoom).
 
 ## 2. Typography
 
 | Role | Face | Size / weight | Use |
 |---|---|---|---|
-| UI text | IBM Plex Sans | 13px (dense tables), 14px (body), 500 for labels | everything that is words |
-| Figures | IBM Plex Mono, tabular | 13px, 400/500 | amounts, percentiles, IDs, timestamps, counts |
-| Page title | Plex Sans 600 | 26px, tight tracking | one `h1` per screen |
-| Panel title | Plex Sans 600 | 16px | `h2` |
-| Section label | Plex Sans 600 | 11px, uppercase, 0.08em | nav groups, drawer sections |
-| Table header | Plex Sans 500 | 11px, 0.02em, `--muted` | every `th`, in every table, one style |
-| Caption | Plex Sans 400 | 12px, `--muted` | panel subtitles, legends, breadcrumb, pagination, links |
-| Metadata | Plex Sans / Mono | 11px | account and timestamp lines under IDs, tags, footer |
+| UI text | Geist | 13px (tables, controls), 14px (body), 500 for labels | everything that is words |
+| Figures | Geist Mono, tabular | 12.5 to 13px, 400/500 | amounts, percentiles, IDs, timestamps, counts |
+| Page title | Geist 600 | 28px, -0.04em | one `h1` per screen |
+| Panel title | Geist 600 | 15px, -0.02em | `h2` |
+| Stat value | Geist Mono 600 | up to 28px, scales with its tile | headline figures |
+| Section label | Geist Mono 500 | 11px, uppercase, 0.12em | nav groups, run-strip and detail labels, data-check sections |
+| Table header | Geist Mono 500 | 11px, uppercase, 0.1em, `--fg3` | every `th`, in every table, one style |
+| Caption | Geist 400 | 12 to 12.5px, `--fg2` / `--fg3` | panel subtitles, legends, pagination, hints |
+| Accent word | Instrument Serif italic | 1.1em of its headline | one word in the sign-in and first-use headlines only |
 
-Type floor: no text a person has to read renders below 11px anywhere in the workspace; the gate (`consistency`) measures every visible text node at 375 and 1440px.
-
-Numbers are right-aligned in tables and use `font-variant-numeric: tabular-nums` so columns of rupees scan vertically. Amounts always show two decimals with Indian digit grouping (`₹12,34,567.89`), via `money()` in `components/workspace/format.ts`. Long unbroken strings (IDs, merchant names) truncate with an ellipsis in tables and wrap in the evidence pane.
+Type floor: nothing a person has to read renders below 11px; the `consistency` gate measures every visible text node at 375 and 1440px. Numbers are right-aligned in tables with `font-variant-numeric: tabular-nums`. Amounts always show two decimals with Indian digit grouping (`₹12,34,567.89`), via `money()` in `components/workspace/format.ts`. Long unbroken strings (IDs, merchant names) truncate with an ellipsis in tables and wrap in the evidence pane.
 
 ## 3. Colour tokens
 
-Ground and surfaces (graphite, neutral with a slight blue):
+Same names and values as the landing page, defined on `.ws`.
 
 | Token | Value | Use |
 |---|---|---|
-| `--bg` | `#0b0e13` | page |
-| `--surface` | `#161b22` | panels, sidebar |
-| `--surface-2` | `#1c222b` | inputs, hovered rows |
-| `--surface-3` | `#232a34` | selected row, pressed |
-| `--line` | `#2b333e` | 1px dividers, input borders |
-| `--line-strong` | `#3a4450` | hover borders, focus-adjacent |
-| `--text` | `#f1f3f7` | primary text (contrast about 16:1 on `--bg`) |
-| `--muted` | `#a0aaba` | secondary text (about 7.5:1 on `--surface`) |
+| `--bg` | `#05060b` | page |
+| `--s1` | `#0b0d16` | panels, stats, run strip |
+| `--s2` | `#11141f` | inputs, notices, option cards |
+| `--s3` | `#1a1e2d` | hover, tracks, neutral tags |
+| `--s-side`, `--s-pane` | `#080a12`, `#0a0c14` | sidebar and diagram ground; docked and sheet evidence |
+| `--rule`, `--rule2` | white at 9%, 17% | dividers; input borders and hover borders |
+| `--fg`, `--fg2`, `--fg3` | `#f5f6fa`, `#aab0c4`, `#8b92a8` | primary, secondary, tertiary text (all pass AA on `--s1`) |
+| `--accent`, `--accent-hi`, `--accent-soft`, `--accent-line` | `#5f4bf5`, `#b9afff`, violet at 17%, violet at 50% | primary action fill (white text); selection, links, focus and the main data series; selection tint; selection line |
 
-Accent (lime, `--accent: #d5f78b`) appears on exactly three kinds of thing: data marks (ruler fill, chart series), the 1px selection line on the selected row, and the primary button. It never fills a large area and never marks a status.
+Violet appears on: the primary button, the selected row or list item (tint plus line), links, focus rings, the percentile ruler and the main chart series. It never marks a status.
 
-Semantic status (colour is never the only signal; every tag carries text):
+Semantic colours (colour is never the only signal; every tag carries text):
 
-| Meaning | Tag | Ink / background |
+| Meaning | Colour | Where |
 |---|---|---|
-| Flagged by the model, needs review | amber | `#e6bb5c` on `#2a2314` |
-| Investigation exists | cyan | `#8fc3dc` on `#14252d` |
-| Standard / cleared | grey | `#aab3c2` on `#1a1f28` |
-| Failure (request failed, validation rejected) | red | reserved for errors only |
-| Success feedback | text + check icon on `--surface-2`, no green fill | |
+| Flagged by the model, feature deviation, needs review | amber `#f3b84b` on 13% amber | Flagged tag, flagged-row edge, reason bars, flagged series, drift over 0.20 |
+| Investigation exists, selected run | violet tag | In investigation, Selected |
+| Cleared, success | green `#5fd39a` on 12% green | Cleared tag, saved feedback, clear data checks |
+| Shared device | teal `#58d6c6` | linked-accounts diagram edges and device nodes |
+| Failure (request failed, validation rejected) | rose `#ff8a98` | errors only |
+| Standard | neutral `--s3` | Standard tag |
 
 Red is not used for "flagged": a flag is a review prompt, not a verdict.
 
 ## 4. Spacing, radius, layout
 
-- Spacing scale: 4, 8, 12, 16, 24, 32. Table cell padding 10px 14px (dense) and 14px 16px (relaxed, mobile cards).
-- Radius: 8px for panels, inputs, buttons; 3px for status tags (they read as labels, not buttons); 999px only for the ruler track.
-- Borders: 1px `--line`. Elevation is expressed with surface steps, not shadows. The one shadow is the modal sheet.
-- Shell: labelled, grouped sidebar (240px) beside a content column with a 1360px max width. Sidebar groups carry text labels; there is no icon-only rail.
-- A context bar under the heading states dataset, data period (UTC), rows and currency, analysis time, run and model, with the batch/not-probability note.
-- Transactions is a master/detail layout: the table on the left, the evidence pane docked on the right at 1100px and wider.
+- Spacing scale: 4, 8, 12, 16, 24, 32. Table cell padding 11px 14px; page padding 32px (20px under 1100px).
+- Radius: 6px small, 8px controls, 12px panels and stats, 16px first-use and sheet top corners, 18px sign-in card, 999px only for the run chip and account chips. Status tags use 5px.
+- Borders: 1px `--rule`. Elevation is surface steps, not shadows; shadows are reserved for the sheet, the sign-in card and the primary button.
+- Shell: grouped sidebar (224px: Work, Explore, Model) beside a content column with a 1560px max width. A 56px top bar holds the breadcrumb, a run chip, the one Import CSV control and the link to the website. There is no icon-only rail.
+- A run strip under the page title states dataset, data period (UTC), rows and currency, analysis time, run and model, with the batch / not-probability note (collapsed under "About these scores" on Transactions).
+- Overview: four stats, then the priority queue beside a "Next to review" card, then activity and distribution. Transactions: filters and table on the left, evidence docked on the right at 1100px and wider. Investigations: queue on the left, the selected case with timeline and note composer on the right. Experiments: configuration on the left (sticky), held-out evaluation and comparison on the right, history below. Data checks: a plain summary of what needs review, then Data quality, Feature drift and Measured run timing as separate sections.
 
 ## 5. Components and their behaviour
 
-All interactive elements have a visible `:focus-visible` ring (2px `--accent` outline, 2px offset) and a minimum 40px hit target (44px on touch layouts).
+All interactive elements have a visible `:focus-visible` ring (2px `--accent-hi` outline, 2px offset) and a minimum 36px hit target (44px on phones).
 
-- **Button** (`ui/button.tsx`): `primary` (lime fill, dark ink), `outline`, `ghost`; `sm` size. Plain class composition, no variant library; `asChild` renders a link with button styling. Pressed state scales to 0.97. One primary per region. Disabled uses reduced opacity and `not-allowed`; the reason appears in adjacent text or `title` whenever disabling is not self-evident. Busy buttons keep their width and show a spinner.
-- **Field, Input, Select** (`ui/field.tsx`): a visible label above the control (never placeholder-only), optional hint beneath, error text linked with `aria-describedby`. Selects are native: they are the correct menu on phones, keyboard-complete, and free of a dependency.
-- **StatusTag** (`ui/tag.tsx`): the only way to show Flagged, Standard, or In investigation. Text always present.
-- **Notice** (`ui/notice.tsx`): `info`, `success` (`role="status"`), `error` (`role="alert"`). Errors say what failed, what is kept, and offer Retry when a retry is meaningful.
-- **Sheet** (`ui/sheet.tsx`, Radix Dialog): modal surface for the evidence view on narrow screens; traps focus, closes on Escape and returns focus to the row that opened it. `aria-labelledby` and `aria-describedby` are set explicitly (`evidence-title`, `evidence-sub`) because the title keeps its own id. Docked evidence on wide screens is a non-modal complementary region with the same content.
-- **DataTable** (`workspace/transaction-table.tsx`): the one table used on Overview, Transactions and Linked accounts. Sticky header, right-aligned numerals, whole-row click target with a real button in the ID cell (so keyboard users have a stop), selected row marked with tint plus a 1px lime left line, ruler beside the percentile figure. Under 720px rows become cards with the same fields and the same single tap target.
-- **Stat** (`ui/stat.tsx`): label, one figure, the fact that qualifies it. Figures scale with their tile width (container query) so a rupee amount stays on one line down to 360px. An optional `href` makes the whole tile a link.
-- **Scroll regions**: any table that can scroll sideways is a focusable, labelled region (`tabindex=0`, `role=region`, `aria-label`) so keyboard users can reach it.
-- **Search inputs** for identifiers use `type=search`, `autocomplete=off` and `spellcheck=false`.
-- **Pagination**: states "X to Y of N", Previous/Next disabled at the ends. Filter or sort changes reset to page one. 25 rows per page.
-- **Empty states** name the cause and the one next action ("No transactions match these filters" with a Clear filters button; "Dataset saved, not analysed yet" with Analyze with defaults).
-- **Loading**: skeleton rows keep the table's height while a run loads; long operations show an elapsed-seconds counter.
+- **Button** (`ui/button.tsx`): `primary` (violet fill, white text), `outline`, `ghost`; `sm` size; `asChild` renders a link with button styling. Pressed state scales to 0.97. One primary per region. Disabled uses reduced opacity and `not-allowed`; the reason appears in adjacent text whenever disabling is not self-evident.
+- **Field, Input, Select, Textarea** (`ui/field.tsx`): a visible label above the control (never placeholder-only), optional hint beneath, error text linked with `aria-describedby`. Selects are native.
+- **StatusTag** (`ui/tag.tsx`): Flagged (amber), In investigation (violet), Cleared (green), Standard (neutral). Text always present.
+- **Notice** (`ui/notice.tsx`): `info`, `success` (`role="status"`), `error` (`role="alert"`). Errors say what failed, what is kept, and offer Retry when a retry is meaningful. The session-ended notice carries a Sign in again link that returns to the same page.
+- **Sheet** (`ui/sheet.tsx`, Radix Dialog): modal evidence on tablets (right) and phones (bottom, 92dvh); traps focus, closes on Escape and returns focus to the opener. Docked evidence on wide screens is a non-modal complementary region with the same content.
+- **Panel and EmptyState** (`ui/panel.tsx`): a titled surface with an optional action; first-use and empty states name the cause and the next action.
+- **Transaction table** (`workspace/transaction-table.tsx`): the one table on Overview, Transactions and Linked accounts. Right-aligned numerals, whole-row click target with a real button in the ID cell, a flagged row carries a 2px amber edge, the selected row a violet tint with a violet line and a top and bottom rule, a percentile ruler beside the figure. Under 720px rows become cards with the same fields.
+- **Evidence panel** (`workspace/evidence-panel.tsx`): ID, merchant and UTC time, amount and percentile, the percentile caveat, facts, "What stands out" as amber deviation bars (full at 10 IQR, capped, never rescaled), account history, and a pinned action ("Create investigation" or "Open investigation").
+- **Stat** (`ui/stat.tsx`): label, one figure, the fact that qualifies it; figures scale with the tile (container query) so a rupee amount stays on one line down to 360px. An optional `href` makes the tile a link; `tone="flag"` colours the figure amber.
+- **Linked-accounts diagram**: three labelled columns (this account, shared devices, linked accounts) drawn from the run's data; each linked account is a keyboard-operable button that re-centres the diagram. Hidden under 720px, where the table is the view.
+- **First use**: "No data yet" offers two equal choices, the synthetic sample or a CSV import, plus the example CSV. A saved but unanalysed dataset offers Analyze with defaults.
+- Scroll regions, search inputs, pagination (25 rows, "X to Y of N") and skeleton loading are unchanged from the earlier system.
 
 ## 6. Responsive rules
 
 | Width | Behaviour |
 |---|---|
-| 1100px and up | table plus docked evidence pane; sidebar visible |
-| 720 to 1099px | table full width, merchant folded under the ID and tighter cell padding so ordinary data fits without sideways scroll; evidence opens as a right-hand sheet; sidebar collapses behind the menu button |
-| under 720px | rows become cards; search stays visible and the other filters sit behind a Filters button (two-column grid when open); evidence is a full-height sheet from the bottom; pagination buttons fill the row |
+| 1100px and up | sidebar visible; Transactions shows the table and the docked evidence pane; two-column Investigations, Experiments and Overview |
+| 720 to 1099px | sidebar behind the menu button (an overlay menu that is hidden from focus when closed); single-column layouts; merchant folded under the ID; evidence opens as a right-hand sheet |
+| under 720px | rows become cards; the other filters sit behind a Filters button; evidence is a bottom sheet; the run strip drops the analysis time; the diagram is replaced by its table |
 
 No horizontal page scroll at 360px. Wide tables scroll inside `.table-scroll`, never the page. The gate `execution/ui_check.mjs` checks scrollWidth at 360, 390, 768, 1024, 1440.
 
 ## 7. Chart and data-visualisation conventions
 
-- The percentile ruler is the signature mark: a 0 to 100 track, a tick at the lowest flagged percentile, a lime fill to the row's percentile. It sits beside the number, never replaces it, and has an `aria-label` that states both values.
-- Other charts: one hue per chart (lime for the series of interest, `--muted` for context), 3 to 5 faint horizontal gridlines at `--line`, axis labels in Plex Mono 11px, direct labels over legends where there is one series, a visible title stating the unit and the period (UTC).
-- No gradients, glows, 3D, rainbow palettes, donut decoration, or charts that restate a single number. A chart appears only when a comparison or trend is the point.
-- Every chart has a text equivalent (table or summary sentence) and a stated sample size.
+- The percentile ruler is the signature mark: a 0 to 100 track, a tick at the lowest flagged percentile, a violet fill to the row's percentile. It sits beside the number, never replaces it, and has an `aria-label` that states both values.
+- The activity chart uses the violet series for all transactions and an amber line for flagged ones, faint horizontal gridlines, 11px axis labels, no animation and no decorative glow. The anomaly distribution uses share bars (violet, amber for the top band). Drift bars are violet, amber once PSI passes 0.20, with a tick at 0.20.
+- No 3D, rainbow palettes or donut decoration, and no chart that restates a single number.
+- Every chart has a text equivalent and a stated sample size.
 
 ## 8. Motion
 
-- Token: `--ease-out: cubic-bezier(.23,1,.32,1)` for everything that enters, exits or responds to a press. Spinners are linear (0.8s). Hover and focus colour changes are 120ms `ease`.
-- Budget: press feedback `scale(.97)` at 120ms; evidence sheet 180ms in and 120ms out (it is occasional, not constant); overlay fade 160ms in and 120ms out. Feedback messages fade in over 150ms with no movement.
-- Frequent actions are instant: row selection, the docked evidence pane, filters, sorting, paging, hover on rows and list items, and the skeleton-to-table swap. Keyboard-initiated sheet opens and closes are effectively instant (`html[data-input=keyboard]`, set by `useInputMode`).
+- Token: `--ease-out: cubic-bezier(.23,1,.32,1)` for anything that enters, exits or answers a press. Hover and focus colour changes are 120ms `ease`.
+- Budget: press feedback `scale(.97)` at 120ms; evidence sheet 180ms in and 120ms out; overlay fade 160ms in and 120ms out; phone menu 180ms. Feedback messages fade in over 150ms with no movement.
+- Frequent actions are instant: row selection, the docked evidence pane, filters, sorting, paging, hover and the skeleton swap. Keyboard-initiated sheet opens and closes are effectively instant (`html[data-input=keyboard]`, set by `useInputMode`).
 - Only opacity and transform animate. Sheets use `data-state` so Radix keeps them mounted for the exit; `@starting-style` handles one-off fades so nothing replays on rerender.
-- `prefers-reduced-motion: reduce` removes travel and press scale and keeps opacity fades and colour feedback. The spinner still turns because it signals progress.
-- No parallax, no looping decorative motion (the hero dash loops were removed), no hover lift, no count-up numbers, no chart tooltip travel.
+- `prefers-reduced-motion: reduce` removes travel and press scale and keeps opacity fades and colour feedback.
+- No parallax, pinned scrolling or cinematic zoom (those stay on the landing page), no looping decorative motion, no count-up numbers, no hover lift. The only loops are the spinner and skeleton pulse, and only while something loads.
 
 ## 9. Conflict resolution between design skills
 
-This system wins wherever a skill's advice disagrees. Decisions already made:
+The approved landing page wins aesthetic conflicts; this system wins everything operational. Decisions already made:
 
 | Skill advice | Decision here | Reason |
 |---|---|---|
-| TasteSkill: avoid monospace captions and thin rules | Use Plex Mono for figures, IDs, timestamps; 1px rules for table structure | Aligned digits and scannable columns matter more than avoiding a style tell in a work tool |
+| TasteSkill: avoid monospace captions and thin rules | Geist Mono for figures, IDs, timestamps and 11px labels; 1px rules for table structure | Aligned digits and scannable columns matter more than avoiding a style tell in a work tool; it is also the landing page's own label style |
 | TasteSkill: quiet borders and repeated panels are normal in app screens | Followed | Operate mode |
-| TasteSkill: no gradients, glows, invented vanity numbers | Followed | Matches product truth |
-| Impeccable: avoid default fonts (Inter) | Plex Sans chosen by direction B | Chosen deliberately, with a mono companion |
-| Impeccable: avoid side-stripe borders | The 1px lime selection line is a state indicator on one row, not decoration; kept | Documented exception; the detector ignores nothing else |
+| TasteSkill: no gradients, glows, invented vanity numbers | Followed in the workspace; the only glows are the sign-in and first-use halos, which echo the landing page | Matches product truth |
+| Impeccable: avoid side-stripe borders | The 2px amber edge and 2px violet selection line are state indicators on a row or list item, not decoration; kept | Documented exception |
 | Emil: motion budget, strong easing, under 200ms | Followed (section 8) | Fits the work tool |
-| Awesome-DESIGN.md references | Principles only (density, restraint, tabular figures); no brand styling copied | Original system |
-| Marketing styling (olive/sage, hero glows) | Left in place; copy, contrast, heading order and decorative motion fixed | Marketing is Persuade mode and needs its own direction decision |
+| Landing "one serif word per headline" | Only on the sign-in and first-use headlines | Tables and controls need clear interface type |
 
 ## 10. Rollout and known limits
 
-Shipped in Instrument: tokens, Overview, Transactions with the docked evidence pane and sheets, Investigations, Experiments, Data checks, Linked accounts, Evidence search, onboarding and import, login, session-expiry and unreachable-API states, motion, and the accessibility and consistency checks in `execution/ui_check.mjs`.
-
-The landing page (`/`) was redesigned as "Lightbox" (section 11).
+Shipped in Lightbox: tokens, shell, Overview, Transactions with the docked evidence pane and sheets, Investigations, Linked accounts, Experiments, Data checks, Evidence search, first use and import, sign-in, session-expiry and unreachable-API states, motion, and the accessibility and consistency checks in `execution/ui_check.mjs`.
 
 Known limits of the shipped design:
 
 - No arrow-key stepping between transaction rows (Tab reaches each row's ID button).
 - A table with a very large amount at tablet width scrolls inside its own region instead of reflowing.
 - Closing evidence uses `history.back()`, which is asynchronous; reopening within a few milliseconds is undone.
-- Native selects clip long option labels; the full value is available in the evidence and context views.
-- Some legacy Obsidian rules remain in `globals.css` and `obsidian.css` and are not tree-shaken per route.
+- Native selects clip long option labels; the full value is available in the evidence and run-strip views.
+- The workspace still loads the full run (all transactions) on every route. A paged API exists but the screens do not use it yet. Moving them is a performance task of its own and was deliberately not part of this visual change.
+- The linked-accounts diagram shows at most 8 shared devices and 10 linked accounts and has no pan or zoom; the table lists all links.
 
 ## 11. Public landing page ("Lightbox")
 
-Mode: Persuade. Code: `frontend/components/landing/*`, `frontend/app/landing.css`, `frontend/app/page.tsx`. Everything is scoped to `.lp` and its own fonts load only on `/`. This replaces the earlier "Trace" direction (lime, thin signal line, stacked heading-plus-cards sections); the workspace keeps Instrument.
+Mode: Persuade. Code: `frontend/components/landing/*`, `frontend/app/landing.css`, `frontend/app/page.tsx`. Everything is scoped to `.lp`; the workspace stylesheet cannot reach it. This replaces the earlier "Trace" direction (lime, thin signal line, stacked heading-plus-cards sections).
 
 Idea: the product is the hero. One lit interface (the real Transactions screen with its inspector, built from the workspace's own labels and the built-in synthetic sample) rises out of perspective under the headline, settles flat, and the page follows one transaction from the queue to a documented case. The composition adapts the reference screenshot's structure (centred display headline, one large lit product object, a floating call-to-action pill on near-black), not any company's branding or claims.
 

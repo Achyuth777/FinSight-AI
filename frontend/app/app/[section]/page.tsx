@@ -1,3 +1,4 @@
+import "../../workspace.css";
 import Workspace from "@/components/workspace";
 import { notFound, redirect } from "next/navigation";
 import { isAuthenticated } from "@/lib/session";

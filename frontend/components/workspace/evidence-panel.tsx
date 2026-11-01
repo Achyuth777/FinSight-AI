@@ -9,13 +9,16 @@ import type { Case, Run, Tx } from "../types";
 import { featureLabel, money, utc } from "./format";
 import { Score } from "./primitives";
 
+// Reason bars are full at this many interquartile ranges; longer deviations are capped, not rescaled.
+const IQR_FULL = 10;
+
 // Evidence for one transaction. Rendered docked beside the table on wide screens and inside a Sheet elsewhere.
 export function EvidencePanel({
   tx, run, earlier, flagFloor, kase, busy, error, Title = "h2", Description = "p", titleRef, onCreateCase, onOpenCase, onClose,
 }: {
   tx: Tx; run: Run; earlier: number; flagFloor?: number; kase?: Case; busy: string; error: string;
   Title?: React.ElementType; Description?: React.ElementType; titleRef?: React.Ref<HTMLElement>;
-  onCreateCase: (tx: Tx) => void; onOpenCase: (id: string) => void; onClose?: () => void;
+  onCreateCase: (tx: Tx) => void; onOpenCase?: (id: string) => void; onClose?: () => void;
 }) {
   // Success feedback: the case appeared while this transaction's panel was open.
   const [created, setCreated] = useState(false);
@@ -40,18 +43,21 @@ export function EvidencePanel({
   return (
     <>
       <div className="drawer-top">
-        <span className="drawer-kind">Transaction evidence</span>
+        <span className="drawer-kind">
+          Transaction evidence
+          {tx.flagged && <StatusTag kind="flag">Flagged</StatusTag>}
+        </span>
         {onClose && (
           <button type="button" className="icon-button" aria-label="Close transaction" onClick={onClose}>
-            <X size={20} />
+            <X size={18} aria-hidden="true" />
           </button>
         )}
       </div>
       <Title id="evidence-title" tabIndex={-1} ref={titleRef} className="evidence-title">{tx.transaction_id}</Title>
-      <Description className="muted evidence-sub" id="evidence-sub">
+      <Description className="evidence-sub" id="evidence-sub">
         {tx.merchant} · {utc(tx.timestamp)}
       </Description>
-      <p className="muted evidence-sub">
+      <p className="evidence-sub dim">
         {run.source === "synthetic" ? "SYNTHETIC SAMPLE" : "UPLOADED"} · Run {run.id.slice(0, 8)}
       </p>
       {error && <Notice kind="error">{error}</Notice>}
@@ -60,7 +66,7 @@ export function EvidencePanel({
         <span className="mono">{money(tx.amount)}</span>
         <Score tx={tx} threshold={flagFloor} />
       </div>
-      <Notice>Anomaly percentile ranks this row against training scores. It is not a fraud probability.</Notice>
+      <p className="caveat">Anomaly percentile ranks this row against training scores. It is not a fraud probability.</p>
       <dl className="details-grid">
         {facts.map(([k, v]) => (
           <div key={k}>
@@ -71,16 +77,19 @@ export function EvidencePanel({
       </dl>
       <h3>What stands out</h3>
       <p className="muted">
-        Absolute deviations from training medians, in interquartile ranges. Contextual signals, not model attribution or proof of
+        Absolute deviations from training medians, in interquartile ranges (bars are full at {IQR_FULL} IQR). Contextual signals, not model attribution or proof of
         fraud. Amount, age and distance use log1p values; hour is UTC. Zero IQR uses a scale of 1 transformed unit.
       </p>
       {tx.reasons.length ? (
-        tx.reasons.map((r) => (
-          <div className="reason" key={r.feature}>
-            <span>{featureLabel(r.feature)}</span>
-            <strong className="mono">{r.deviation_iqr} IQR</strong>
-          </div>
-        ))
+        <div className="reasons">
+          {tx.reasons.map((r) => (
+            <div className="reason" key={r.feature}>
+              <span>{featureLabel(r.feature)}</span>
+              <strong className="mono">{r.deviation_iqr} IQR</strong>
+              <i className="reason-bar" aria-hidden="true"><b style={{ width: Math.min(100, (r.deviation_iqr / IQR_FULL) * 100) + "%" }} /></i>
+            </div>
+          ))}
+        </div>
       ) : (
         <p className="muted">No feature deviates notably from training medians.</p>
       )}
@@ -93,13 +102,13 @@ export function EvidencePanel({
         {kase ? (
           <>
             <StatusTag kind="case">In investigation: {kase.status}</StatusTag>
-            <Link href={"/app/investigations?case=" + encodeURIComponent(kase.id)} className="button primary" onClick={() => onOpenCase(kase.id)}>
-              Open investigation <ArrowRight size={16} />
+            <Link href={"/app/investigations?case=" + encodeURIComponent(kase.id)} className="button primary" onClick={() => onOpenCase?.(kase.id)}>
+              Open investigation <ArrowRight size={16} aria-hidden="true" />
             </Link>
           </>
         ) : (
           <Button disabled={!!busy} onClick={() => onCreateCase(tx)}>
-            <Plus size={17} /> Create investigation
+            <Plus size={16} aria-hidden="true" /> Create investigation
           </Button>
         )}
       </div>
