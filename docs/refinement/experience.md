@@ -184,6 +184,7 @@ None touches the backend, the API contracts or the scoring.
 | "In investigation" status in the table | UI-only join of data the page already loads |
 | Data period shown | Derived from the run's first and last transaction timestamps |
 | Metrics show n and positives | Derived from the existing confusion matrix and counts |
+| `GET/POST /api/datasets*` responses gain a read-only `labeled` boolean (true when rows carry `is_fraud`) | Additive and derived from stored rows; lets Experiments explain before running that XGBoost needs labels. No scoring or storage change; covered by a test |
 | Sidebar avatar, workspace switcher and "Learning environment" card removed | They imply identity, multi-workspace support and a learning mode that are not implemented. The "no payment actions" statement is kept in the context bar |
 
 **Deliberately not added:** live feeds or alerts, an AI chat, multi-user features, run comparison, export, notifications, themes. None exists in the product, and none is needed for the three journeys.

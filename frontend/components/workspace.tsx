@@ -156,6 +156,8 @@ export default function Workspace({ section }: { section: string }) {
       localStorage.setItem("finsight-run", id);
     });
   }
+  const selectedDataset = datasets.find((d) => d.id === dataset);
+  const unlabeled = selectedDataset?.labeled === false;
   async function experiment(id = dataset) {
     await task("Training models", async () => {
       const r = await api<Run>("/runs", {
@@ -164,7 +166,7 @@ export default function Workspace({ section }: { section: string }) {
           dataset_id: id,
           contamination,
           trees,
-          supervised,
+          supervised: supervised && !unlabeled,
         }),
       });
       setRun(r);
@@ -1233,14 +1235,16 @@ export default function Workspace({ section }: { section: string }) {
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
-                        checked={supervised}
+                        checked={supervised && !unlabeled}
+                        disabled={unlabeled}
                         onChange={(e) => setSupervised(e.target.checked)}
                       />{" "}
                       Compare XGBoost + SHAP
                     </label>
                     <p className="muted">
-                      Requires is_fraud labels. Classifier output is
-                      uncalibrated; SHAP explains its raw margin.
+                      {unlabeled
+                        ? "Unavailable: this dataset has no is_fraud labels, so XGBoost cannot be trained. Isolation Forest will still run."
+                        : "Requires is_fraud labels. Classifier output is uncalibrated; SHAP explains its raw margin."}
                     </p>
                     <Button
                       disabled={!dataset || !!busy}
@@ -1275,11 +1279,12 @@ export default function Workspace({ section }: { section: string }) {
                   >
                     {run ? (
                       <div className="evaluation-body">
-                        <MetricCards metrics={run.metrics} />
+                        <MetricCards metrics={run.metrics} source={run.source} />
                         <p className="muted">
-                          {run.source === "synthetic"
-                            ? "Synthetic labels are generated with simple rules. These metrics do not estimate real-world performance."
-                            : "Metrics use supplied labels. Their reliability depends on label quality and sample representativeness."}
+                          Flag threshold: raw anomaly score above{" "}
+                          {run.threshold.toFixed(4)}, set from the training
+                          contamination of {pct(run.contamination)}. Isolation
+                          Forest, {run.trees} trees.
                         </p>
                         {run.metrics.confusion_matrix && (
                           <div className="confusion">
@@ -1334,7 +1339,7 @@ export default function Workspace({ section }: { section: string }) {
                       subtitle="Held-out metrics · threshold 0.5 · uncalibrated"
                     >
                       <div className="evaluation-body">
-                        <MetricCards metrics={run.comparison.metrics} />
+                        <MetricCards metrics={run.comparison.metrics} source={run.source} />
                         <h3>Mean absolute SHAP contributions</h3>
                         {run.comparison.shap_mean_abs.map((f) => (
                           <div className="feature-bar" key={f.feature}>
@@ -1377,7 +1382,7 @@ export default function Workspace({ section }: { section: string }) {
                         <th>Dataset</th>
                         <th>Trees</th>
                         <th>Contamination</th>
-                        <th>Average precision</th>
+                        <th>Average precision (held-out)</th>
                         <th>Inspect</th>
                       </tr>
                     </thead>
@@ -1386,9 +1391,7 @@ export default function Workspace({ section }: { section: string }) {
                         <tr key={r.id}>
                           <td>
                             {r.id.slice(0, 8)}
-                            <small>
-                              {r.created_at.slice(0, 19).replace("T", " ")}
-                            </small>
+                            <small>{utc(r.created_at)}</small>
                           </td>
                           <td>{r.dataset_name}</td>
                           <td>{r.trees}</td>
@@ -1433,9 +1436,9 @@ export default function Workspace({ section }: { section: string }) {
                   <small>Includes optional classifier + SHAP</small>
                 </div>
                 <div className="metric">
-                  <span>Validation</span>
-                  <strong>Passed</strong>
-                  <small>Required fields, ranges, unique transaction IDs</small>
+                  <span>Import validation</span>
+                  <strong>Applied</strong>
+                  <small>Required fields, ranges and unique IDs are checked at import; failing files are rejected, not scored</small>
                 </div>
                 <div className="metric">
                   <span>Feature drift flags</span>
@@ -1505,14 +1508,13 @@ export default function Workspace({ section }: { section: string }) {
                   monitoring, not a live production feed.
                 </p>
               </Panel>
-              <Panel
-                title="Performance snapshot"
-                subtitle="Last selected experiment"
-              >
-                <div className="evaluation-body">
-                  <MetricCards metrics={run.metrics} />
-                </div>
-              </Panel>
+              <p className="panel-note">
+                Held-out metrics for this run, with their sample size, are in{" "}
+                <Link className="text-link" href="/app/laboratory">
+                  Experiments
+                </Link>
+                .
+              </p>
             </>
           )}
           {run && section === "assistant" && (

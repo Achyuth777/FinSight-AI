@@ -171,6 +171,33 @@ async function onboardingCheck(browser) {
   await context.close();
 }
 
+// Experiments and Data checks: caveat, n and positives, unlabeled datasets, no duplicated metrics.
+async function modelChecks(browser) {
+  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await context.newPage();
+  try {
+    await page.goto(base + "/app/laboratory", { waitUntil: "networkidle" });
+    // Load a run of the labeled synthetic dataset from the history (the latest run may be an unlabeled import).
+    await page.locator("tbody tr").filter({ hasText: "Synthetic payment sandbox" }).first().getByRole("button", { name: /load|selected/i }).click();
+    await page.getByText(/^n = [\d,]+ held-out rows, [\d,]+ positives/).first().waitFor();
+    record("experiments: held-out metrics show n and positives", true);
+    record("experiments: synthetic caveat sits above the metrics", (await page.getByText(/Synthetic sample: labels come from simple generating rules/).count()) > 0);
+    const plain = await page.locator("#dataset option").evaluateAll((os) => os.find((o) => /ui-check-/.test(o.textContent))?.value);
+    if (plain) {
+      await page.locator("#dataset").selectOption(plain);
+      const note = await page.getByText(/Unavailable: this dataset has no is_fraud labels/).count();
+      const disabled = await page.getByLabel(/Compare XGBoost/).isDisabled();
+      record("experiments: XGBoost on an unlabeled dataset is explained before running", note > 0 && disabled);
+    } else record("experiments: XGBoost on an unlabeled dataset is explained before running", false, "no unlabeled dataset available (run the onboarding check first)");
+    await page.goto(base + "/app/monitoring", { waitUntil: "networkidle" });
+    await page.getByText("Feature distribution drift").waitFor();
+    record("data checks: metrics are not duplicated here", (await page.getByText("ROC-AUC").count()) === 0);
+  } catch (e) {
+    record("model checks", false, String(e.message).split(String.fromCharCode(10))[0]);
+  }
+  await context.close();
+}
+
 const browser = await launch();
 await ensureRun((await browser.newContext()).request);
 if (!only || only === "overflow") await overflowChecks(browser);
@@ -178,6 +205,7 @@ if (!only || only === "drawer") await drawerChecks(browser);
 if (!only || only === "journey") await journeyCheck(browser);
 if (!only || only === "journey" || only === "investigations") await investigationChecks(browser);
 if (!only || only === "onboarding") await onboardingCheck(browser);
+if (!only || only === "models") await modelChecks(browser);
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

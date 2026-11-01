@@ -62,26 +62,46 @@ export function Unavailable({ reason }: { reason: string }) {
   return <span className="unavailable">Unavailable: {reason}</span>;
 }
 
-export function MetricCards({ metrics }: { metrics: Metrics }) {
-  return !metrics.available ? (
-    <div className="notice">
-      <Info size={18} />
-      {metrics.reason}
-    </div>
-  ) : (
-    <div className="metric-grid compact">
-      {[
-        ["ROC-AUC", metrics.roc_auc],
-        ["Average precision", metrics.average_precision],
-        ["Precision", metrics.precision],
-        ["Recall", metrics.recall],
-      ].map(([name, value]) => (
-        <div className="metric" key={String(name)}>
-          <span>{name}</span>
-          <strong>{pct(value as number)}</strong>
-          <small>Held-out transactions</small>
+// Every metric block carries its caveat above it and its sample size and positives beneath it.
+export function MetricCards({ metrics, source }: { metrics: Metrics; source: string }) {
+  const cm = metrics.confusion_matrix;
+  const n = cm ? cm.flat().reduce((x, y) => x + y, 0) : undefined;
+  const positives = cm ? cm[1][0] + cm[1][1] : undefined;
+  return (
+    <>
+      <p className="metric-caveat">
+        {source === "synthetic"
+          ? "Synthetic sample: labels come from simple generating rules. These metrics do not estimate real-world performance."
+          : "Metrics use the labels you supplied. Their reliability depends on label quality and how representative the sample is."}
+      </p>
+      {!metrics.available ? (
+        <div className="notice">
+          <Info size={18} />
+          Unavailable: {metrics.reason}
         </div>
-      ))}
-    </div>
+      ) : (
+        <>
+          <div className="metric-grid compact">
+            {[
+              ["ROC-AUC", metrics.roc_auc],
+              ["Average precision", metrics.average_precision],
+              ["Precision", metrics.precision],
+              ["Recall", metrics.recall],
+            ].map(([name, value]) => (
+              <div className="metric" key={String(name)}>
+                <span>{name}</span>
+                <strong>{pct(value as number)}</strong>
+                <small>Held-out transactions</small>
+              </div>
+            ))}
+          </div>
+          {n != null && positives != null && (
+            <p className="metric-n">
+              n = {n.toLocaleString()} held-out rows, {positives.toLocaleString()} positives
+            </p>
+          )}
+        </>
+      )}
+    </>
   );
 }

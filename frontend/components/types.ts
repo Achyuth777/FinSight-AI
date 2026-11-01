@@ -53,6 +53,7 @@ export type Dataset = {
   name: string;
   source: string;
   row_count: number;
+  labeled?: boolean;
 };
 export type Case = {
   id: string;

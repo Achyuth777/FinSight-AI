@@ -60,3 +60,12 @@ def test_concurrent_notes_and_case_creation_are_not_lost():
         list(ex.map(lambda i:client.patch('/api/cases/'+cid,json={'note':f'n{i}'}),range(8)))
     events=[c for c in client.get('/api/cases').json() if c['id']==cid][0]['events']
     assert sum(e['type']=='note' for e in events)==8
+
+def test_dataset_reports_whether_labels_exist():
+    labeled=client.post('/api/datasets/demo').json()
+    assert labeled['labeled'] is True
+    csv=demo_data(120).drop(columns=['is_fraud']).to_csv(index=False).encode()
+    plain=client.post('/api/datasets/upload',files={'file':('plain.csv',csv)}).json()
+    assert plain['labeled'] is False and 'rows' not in plain
+    listed={d['id']:d['labeled'] for d in client.get('/api/datasets').json()}
+    assert listed[labeled['id']] is True and listed[plain['id']] is False

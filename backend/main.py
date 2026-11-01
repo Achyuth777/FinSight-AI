@@ -76,15 +76,18 @@ def records(kind):
 def health(): return {'status':'ok','mode':'local-single-analyst','database':'postgresql' if url.startswith('postgres') else 'sqlite'}
 @app.get('/api/template')
 def template(): return Response(demo_data(120).to_csv(index=False),media_type='text/csv',headers={'Content-Disposition':'attachment; filename=synthetic-template.csv'})
+def public_dataset(d):
+    rows=d.get('rows') or []
+    return {**{k:v for k,v in d.items() if k!='rows'},'labeled':bool(rows) and 'is_fraud' in rows[0]}
 @app.get('/api/datasets')
-def datasets(): return [{k:v for k,v in d.items() if k!='rows'} for d in records('dataset')]
+def datasets(): return [public_dataset(d) for d in records('dataset')]
 @app.post('/api/datasets/demo')
 def demo():
     prior=[d for d in records('dataset') if d.get('source')=='synthetic']
-    if prior: return {k:v for k,v in prior[0].items() if k!='rows'}
+    if prior: return public_dataset(prior[0])
     f=validate_csv(demo_data().to_csv(index=False).encode())
     d=save('dataset',{'name':'Synthetic payment sandbox','source':'synthetic','currency':'INR','created_at':now(),'row_count':len(f),'rows':f.to_dict('records')})
-    return {k:v for k,v in d.items() if k!='rows'}
+    return public_dataset(d)
 @app.post('/api/datasets/upload')
 async def upload(request:Request,file:UploadFile=File(...)):
     declared=request.headers.get('content-length')
@@ -94,7 +97,7 @@ async def upload(request:Request,file:UploadFile=File(...)):
     try: f=validate_csv(raw)
     except ValueError as e: raise HTTPException(422,str(e))
     d=save('dataset',{'name':(file.filename or 'upload.csv')[:160],'source':'uploaded','currency':'INR','created_at':now(),'row_count':len(f),'rows':f.to_dict('records')})
-    return {k:v for k,v in d.items() if k!='rows'}
+    return public_dataset(d)
 class Experiment(BaseModel):
     dataset_id:str
     contamination:float=Field(.07,ge=.01,le=.2)

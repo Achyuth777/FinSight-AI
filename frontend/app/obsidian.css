@@ -175,3 +175,7 @@ td small{color:var(--muted)}
 .empty-choices{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
 .pending-dataset{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .pending-dataset span{flex:1 1 280px}
+
+/* Step 4: metric caveat above, sample size beneath */
+.metric-caveat{margin:0 0 12px;font-size:12.5px;color:var(--muted)}
+.metric-n{margin:10px 0 0;font:400 12px var(--font-mono-stack);color:var(--muted)}
