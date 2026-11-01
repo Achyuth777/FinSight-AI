@@ -94,7 +94,7 @@ export function MetricCards({ metrics, source }: { metrics: Metrics; source: str
           </div>
           {n != null && positives != null && (
             <p className="metric-n">
-              n = {n.toLocaleString()} held-out rows, {positives.toLocaleString()} positives
+              n = {n.toLocaleString("en-IN")} held-out rows, {positives.toLocaleString("en-IN")} positives
             </p>
           )}
         </>

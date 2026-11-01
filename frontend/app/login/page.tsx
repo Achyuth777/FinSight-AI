@@ -39,7 +39,7 @@ export default function LoginPage() {
         <Link href="/" className="login-brand" aria-label="FinSight home"><Brand /></Link>
         <h1>Sign in</h1>
         <p>Single-analyst workspace for reviewing flagged transactions. Enter the workspace password set by the owner.</p>
-        {returnTo && <Notice>Your session ended. Sign in to return to {returnTo}.</Notice>}
+        {returnTo && <Notice>Sign in to continue to {returnTo}.</Notice>}
         <form onSubmit={signIn}>
           <div className="field">
             <label htmlFor="workspace-password">Workspace password</label>

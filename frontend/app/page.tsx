@@ -183,7 +183,7 @@ export default function Home() {
               <div className="pipeline-step" key={n}>
                 <span>{n}</span>
                 <div>
-                  <h4>{title}</h4>
+                  <h3>{title}</h3>
                   <p>{text}</p>
                 </div>
               </div>

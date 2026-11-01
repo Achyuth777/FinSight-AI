@@ -34,7 +34,7 @@ export function EvidencePanel({
     ["Data split", tx.split === "test" ? "Held-out" : "Training"],
     ["Raw anomaly score", tx.anomaly_score],
     ["Transactions / 1h", tx.velocity_1h],
-    ["Account age", tx.account_age_days + " days"],
+    ["Account age", tx.account_age_days + (tx.account_age_days === 1 ? " day" : " days")],
     ["Distance", tx.distance_km + " km"],
   ];
   return (
@@ -86,7 +86,7 @@ export function EvidencePanel({
       )}
       <h3>Account history in this dataset</h3>
       <p className="muted">
-        {earlier.toLocaleString()} earlier transactions. History excludes this transaction and later records.
+        {earlier.toLocaleString("en-IN")} earlier transactions. History excludes this transaction and later records.
       </p>
       <div className="drawer-actions">
         {created && <Notice kind="success" className="actions-note">Investigation opened.</Notice>}

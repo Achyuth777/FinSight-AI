@@ -26,7 +26,7 @@ export function ShareBars({ rows, total, label }: { rows: { name: string; value:
           <li key={r.name}>
             <span className="share-name">{r.name}</span>
             <span className="share-track" aria-hidden="true"><i style={{ width: share + "%" }} /></span>
-            <span className="share-num mono">{r.value.toLocaleString()} <small>{total ? share.toFixed(1) + "%" : "n/a"}</small></span>
+            <span className="share-num mono">{r.value.toLocaleString("en-IN")} <small>{total ? share.toFixed(1) + "%" : "n/a"}</small></span>
           </li>
         );
       })}

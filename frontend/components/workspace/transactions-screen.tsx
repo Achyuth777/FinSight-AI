@@ -127,7 +127,7 @@ export function TransactionsScreen({
             <label htmlFor="tx-search">Search</label>
             <div className="search-input">
               <Search size={16} aria-hidden="true" />
-              <input id="tx-search" placeholder="ID, account, merchant, device" value={f.query} onChange={(e) => update({ query: e.target.value })} />
+              <input id="tx-search" type="search" name="transaction-search" autoComplete="off" spellCheck={false} placeholder="ID, account, merchant, device" value={f.query} onChange={(e) => update({ query: e.target.value })} />
             </div>
           </div>
           <button type="button" className="button outline small tx-filter-toggle" aria-expanded={filtersOpen} aria-controls="tx-filter-rest" onClick={() => setFiltersOpen(!filtersOpen)}>
@@ -155,7 +155,7 @@ export function TransactionsScreen({
           </div>
         )}
         <p className="tx-count" role="status">
-          {loading ? "Loading transactions" : `${sorted.length.toLocaleString()} matching transactions`}
+          {loading ? "Loading transactions" : `${sorted.length.toLocaleString("en-IN")} matching transactions`}
         </p>
         <TransactionTable
           items={shown} onSelect={(t) => setSelectedId(t.transaction_id)} selectedId={selectedId} flagFloor={flagFloor}
@@ -170,7 +170,7 @@ export function TransactionsScreen({
         />
         <div className="pagination">
           <span className="mono">
-            {sorted.length ? `${(at * PAGE + 1).toLocaleString()} to ${(at * PAGE + shown.length).toLocaleString()} of ${sorted.length.toLocaleString()}` : "No rows"}
+            {sorted.length ? `${(at * PAGE + 1).toLocaleString("en-IN")} to ${(at * PAGE + shown.length).toLocaleString("en-IN")} of ${sorted.length.toLocaleString("en-IN")}` : "No rows"}
           </span>
           <div>
             <Button variant="outline" size="sm" disabled={at <= 0} onClick={() => setPage(at - 1)}>Previous</Button>

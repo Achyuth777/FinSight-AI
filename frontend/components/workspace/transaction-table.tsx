@@ -13,7 +13,7 @@ export function TransactionTable({
   caseByTx: Map<string, Case>; loading?: boolean; caption: string; empty?: React.ReactNode;
 }) {
   return (
-    <div className="table-scroll" aria-busy={loading}>
+    <div className="table-scroll" aria-busy={loading} tabIndex={0} role="region" aria-label="Transactions table, scrollable">
       <table className="tx-table">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -40,8 +40,8 @@ export function TransactionTable({
                       <button className="id-button" title={t.transaction_id} aria-pressed={t.transaction_id === selectedId} onClick={() => onSelect(t)}>
                         {t.transaction_id}
                       </button>
-                      <small className="mono">{t.account_id} · {utc(t.timestamp)}</small>
-                      <small className="merchant-inline">{t.merchant}</small>
+                      <small className="mono" title={t.account_id}>{t.account_id} · {utc(t.timestamp)}</small>
+                      <small className="merchant-inline" title={t.merchant}>{t.merchant}</small>
                     </td>
                     <td className="col-merchant c-merchant" title={t.merchant}>{t.merchant}</td>
                     <td className="mono r c-amount">{money(t.amount)}</td>

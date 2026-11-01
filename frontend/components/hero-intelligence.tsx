@@ -21,7 +21,7 @@ export function HeroIntelligence() {
         <div className="preview-heading">
           <div>
             <div className="preview-overline">SIGNAL ANALYSIS <span> / 001</span></div>
-            <h3>One signal. The bigger picture.</h3>
+            <h2>One signal. The bigger picture.</h2>
             <p>Investigate the relationships behind unusual activity.</p>
           </div>
           <span className="preview-meta">ILLUSTRATIVE DATA</span>

@@ -202,14 +202,14 @@ export default function Workspace({ section }: { section: string }) {
   function analysed(r: Run) {
     const flaggedCount = r.transactions.filter((x) => x.flagged).length;
     setNotice(
-      `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString()} rows, ${flaggedCount.toLocaleString()} flagged for review.`,
+      `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString("en-IN")} rows, ${flaggedCount.toLocaleString("en-IN")} flagged for review.`,
     );
     setLandingRisk("flagged");
     // Each section is its own route and remounts, so carry the landing state across the navigation.
     try {
       sessionStorage.setItem(
         "finsight-landing",
-        JSON.stringify({ notice: `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString()} rows, ${flaggedCount.toLocaleString()} flagged for review.`, risk: "flagged" }),
+        JSON.stringify({ notice: `Analysed ${r.dataset_name}: ${r.transactions.length.toLocaleString("en-IN")} rows, ${flaggedCount.toLocaleString("en-IN")} flagged for review.`, risk: "flagged" }),
       );
     } catch {}
     router.push("/app/transactions");
@@ -323,7 +323,7 @@ export default function Workspace({ section }: { section: string }) {
   // Only a device that another account also uses links accounts together.
   const sharedDevices = devices.filter((d) => (accountsByDevice.get(d)?.size || 0) > 1);
   const neighbors = [...new Set(sharedDevices.flatMap((d) => [...(accountsByDevice.get(d) || [])]))].filter((a) => a !== activeEntity).sort();
-  const plural = (n: number, w: string) => `${n.toLocaleString()} ${w}${n === 1 ? "" : "s"}`;
+  const plural = (n: number, w: string) => `${n.toLocaleString("en-IN")} ${w}${n === 1 ? "" : "s"}`;
   function chooseEntity(a: string) {
     setEntity(a);
     window.history.replaceState(null, "", "?account=" + encodeURIComponent(a));
@@ -481,7 +481,7 @@ export default function Workspace({ section }: { section: string }) {
               <Database size={17} />
               <span>
                 {datasets.find((d) => d.id === dataset)?.name} (
-                {datasets.find((d) => d.id === dataset)?.row_count.toLocaleString()} rows)
+                {datasets.find((d) => d.id === dataset)?.row_count.toLocaleString("en-IN")} rows)
                 is saved but not analysed. The figures below are for run {run.id.slice(0, 8)}.
               </span>
               <Button size="sm" onClick={() => analyzeDefaults(dataset)} disabled={!!busy}>
@@ -515,7 +515,7 @@ export default function Workspace({ section }: { section: string }) {
                     </div>
                     <div>
                       <dt>Rows · currency</dt>
-                      <dd>{rows.length.toLocaleString()} · INR</dd>
+                      <dd>{rows.length.toLocaleString("en-IN")} · INR</dd>
                     </div>
                     <div>
                       <dt>Analysed</dt>
@@ -590,10 +590,10 @@ export default function Workspace({ section }: { section: string }) {
               <div className="stat-grid">
                 <Stat
                   label="Flagged for review"
-                  value={flagged.length.toLocaleString()}
+                  value={flagged.length.toLocaleString("en-IN")}
                   note={
                     rows.length
-                      ? `${pct(flagged.length / rows.length)} of ${rows.length.toLocaleString()} rows, above the model threshold (${pct(run.contamination)} training contamination)`
+                      ? `${pct(flagged.length / rows.length)} of ${rows.length.toLocaleString("en-IN")} rows, above the model threshold (${pct(run.contamination)} training contamination)`
                       : <Unavailable reason="this run has no rows" />
                   }
                   href="/app/transactions"
@@ -608,14 +608,14 @@ export default function Workspace({ section }: { section: string }) {
                 />
                 <Stat
                   label="Open investigations"
-                  value={cases.filter((c) => ["open", "reviewing"].includes(c.status)).length.toLocaleString()}
+                  value={cases.filter((c) => ["open", "reviewing"].includes(c.status)).length.toLocaleString("en-IN")}
                   note="Open or reviewing, across all runs"
                   href="/app/investigations"
                 />
                 <Stat
                   label="Transactions analyzed"
-                  value={rows.length.toLocaleString()}
-                  note={`${new Set(rows.map((t) => t.account_id)).size.toLocaleString()} distinct accounts`}
+                  value={rows.length.toLocaleString("en-IN")}
+                  note={`${new Set(rows.map((t) => t.account_id)).size.toLocaleString("en-IN")} distinct accounts`}
                 />
               </div>
               <Panel
@@ -669,7 +669,7 @@ export default function Workspace({ section }: { section: string }) {
                     ]}
                   />
                   <p className="panel-note">
-                    Isolation Forest, {run.trees} trees. {run.train_count.toLocaleString()} training and {run.test_count.toLocaleString()} held-out rows.{" "}
+                    Isolation Forest, {run.trees} trees. {run.train_count.toLocaleString("en-IN")} training and {run.test_count.toLocaleString("en-IN")} held-out rows.{" "}
                     <Link className="text-link" href="/app/laboratory">Inspect experiment</Link>
                   </p>
                 </Panel>
@@ -693,7 +693,7 @@ export default function Workspace({ section }: { section: string }) {
             <div className="case-grid">
               <Panel
                 title="Investigation queue"
-                subtitle={`${cases.length.toLocaleString()} saved across all runs`}
+                subtitle={`${cases.length.toLocaleString("en-IN")} saved across all runs`}
                 action={
                   <Select
                     label="Case status filter"
@@ -809,7 +809,7 @@ export default function Workspace({ section }: { section: string }) {
                         onChange={(e) => setNote(e.target.value)}
                         aria-describedby="note-count"
                       />
-                      <p className="field-hint mono" id="note-count">{note.length.toLocaleString()} / 4,000</p>
+                      <p className="field-hint mono" id="note-count">{note.length.toLocaleString("en-IN")} / 4,000</p>
                     </div>
                     <div className="save-row">
                       <Button disabled={!note.trim() || !!busy} onClick={() => updateCase(activeCase)}>
@@ -854,9 +854,9 @@ export default function Workspace({ section }: { section: string }) {
             <>
               <div className="stat-grid">
                 <Stat label="Account" value={activeEntity} note={`${plural(entityRows.length, "transaction")} in this run`} />
-                <Stat label="Devices used" value={devices.length.toLocaleString()} note="Distinct device identifiers on this account" />
-                <Stat label="Shared with other accounts" value={sharedDevices.length.toLocaleString()} note={sharedDevices.length === 1 ? "device is also used elsewhere" : "devices are also used elsewhere"} />
-                <Stat label="Linked accounts" value={neighbors.length.toLocaleString()} note="Other accounts on those devices" />
+                <Stat label="Devices used" value={devices.length.toLocaleString("en-IN")} note="Distinct device identifiers on this account" />
+                <Stat label="Shared with other accounts" value={sharedDevices.length.toLocaleString("en-IN")} note={sharedDevices.length === 1 ? "device is also used elsewhere" : "devices are also used elsewhere"} />
+                <Stat label="Linked accounts" value={neighbors.length.toLocaleString("en-IN")} note="Other accounts on those devices" />
               </div>
               <Panel
                 title="Linked accounts"
@@ -922,7 +922,7 @@ export default function Workspace({ section }: { section: string }) {
                     <p className="panel-note graph-note">
                       The graph shows up to 8 shared devices and 10 linked accounts. The table lists every linked account.
                     </p>
-                    <div className="table-scroll">
+                    <div className="table-scroll" tabIndex={0} role="region" aria-label="Linked accounts table, scrollable">
                       <table className="link-table">
                         <caption className="sr-only">Accounts linked to {activeEntity} through shared devices</caption>
                         <thead>
@@ -941,15 +941,15 @@ export default function Workspace({ section }: { section: string }) {
                               <tr key={a}>
                                 <td><button className="id-button" onClick={() => chooseEntity(a)}>{a}</button></td>
                                 <td className="mono" title={via.join(", ")}>{via.slice(0, 3).join(", ")}{via.length > 3 ? ` +${via.length - 3}` : ""}</td>
-                                <td className="mono r">{list.length.toLocaleString()}</td>
-                                <td className="mono r">{list.filter((x) => x.flagged).length.toLocaleString()}</td>
+                                <td className="mono r">{list.length.toLocaleString("en-IN")}</td>
+                                <td className="mono r">{list.filter((x) => x.flagged).length.toLocaleString("en-IN")}</td>
                               </tr>
                             );
                           })}
                         </tbody>
                       </table>
                     </div>
-                    {neighbors.length > 50 && <p className="panel-note">Showing 50 of {neighbors.length.toLocaleString()} linked accounts.</p>}
+                    {neighbors.length > 50 && <p className="panel-note">Showing 50 of {neighbors.length.toLocaleString("en-IN")} linked accounts.</p>}
                   </>
                 )}
               </Panel>
@@ -983,7 +983,7 @@ export default function Workspace({ section }: { section: string }) {
                       value={dataset}
                       onChange={(e) => setDataset(e.target.value)}
                       error={!datasets.length ? "No datasets yet. Import a CSV or load the synthetic sample from Overview." : ""}
-                      options={[["", "Select a dataset"], ...datasets.map((d) => [d.id, `${d.name} · ${d.row_count.toLocaleString()} rows`])]}
+                      options={[["", "Select a dataset"], ...datasets.map((d) => [d.id, `${d.name} · ${d.row_count.toLocaleString("en-IN")} rows`])]}
                     />
                     <Input
                       label={`Expected training outliers: ${pct(contamination)}`}
@@ -1146,7 +1146,7 @@ export default function Workspace({ section }: { section: string }) {
                 title="Experiment history"
                 subtitle="Saved configurations and results"
               >
-                <div className="table-scroll">
+                <div className="table-scroll" tabIndex={0} role="region" aria-label="Experiment history table, scrollable">
                   <table>
                     <thead>
                       <tr>
@@ -1191,7 +1191,7 @@ export default function Workspace({ section }: { section: string }) {
           {run && section === "monitoring" && (
             <>
               <div className="stat-grid">
-                <Stat label="Batch inference time" value={`${run.inference_ms.toFixed(1)} ms`} note={`${rows.length.toLocaleString()} rows, measured during this run`} />
+                <Stat label="Batch inference time" value={`${run.inference_ms.toFixed(1)} ms`} note={`${rows.length.toLocaleString("en-IN")} rows, measured during this run`} />
                 <Stat label="Total experiment time" value={`${(run.duration_ms / 1000).toFixed(2)} s`} note="Includes the optional classifier and SHAP" />
                 <Stat label="Import validation" value="Applied" note="Required fields, ranges and unique IDs are checked at import. Failing files are rejected, not scored." />
                 <Stat label="Feature drift flags" value={`${run.drift.filter((d) => d.status === "review").length} of ${run.drift.length}`} note="PSI above 0.20, a heuristic review threshold" />
@@ -1200,7 +1200,7 @@ export default function Workspace({ section }: { section: string }) {
                 title="Feature distribution drift"
                 subtitle="Population Stability Index · training vs held-out rows · bar scale 0–0.50 (capped)"
               >
-                <div className="table-scroll">
+                <div className="table-scroll" tabIndex={0} role="region" aria-label="Feature drift table, scrollable">
                   <table className="drift-table">
                     <caption className="sr-only">Population stability index per feature, training versus held-out rows</caption>
                     <thead>
@@ -1281,6 +1281,10 @@ export default function Workspace({ section }: { section: string }) {
                       <Input
                         label="Search"
                         id="evidence-query"
+                        name="evidence-query"
+                        type="search"
+                        autoComplete="off"
+                        spellCheck={false}
                         className="search-field"
                         value={research}
                         onChange={(e) => setResearch(e.target.value)}

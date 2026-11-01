@@ -5,14 +5,14 @@
 // and the core journey (open transaction -> create case -> note -> status -> reload).
 // Exits 1 if any check fails; writes .tmp/ui-check.json.
 import { createRequire } from "node:module";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 const { chromium } = createRequire(import.meta.url)("../frontend/node_modules/playwright-core");
 
 const args = process.argv.slice(2);
 const arg = (name, fallback) => (args.includes(name) ? args[args.indexOf(name) + 1] : fallback);
 const base = arg("--base", "http://127.0.0.1:3000");
 const shots = arg("--shots", "");
-const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models | motion
+const only = arg("--only", ""); // overflow | drawer | journey | investigations | onboarding | transactions | models | motion | a11y | worst
 if (shots) mkdirSync(shots, { recursive: true });
 
 const sections = ["overview", "transactions", "investigations", "network", "laboratory", "monitoring", "assistant"];
@@ -148,6 +148,158 @@ async function motionChecks(browser) {
     await page.waitForTimeout(600);
     const looping = await page.evaluate(() => document.getAnimations().filter((a) => a.effect?.getComputedTiming().iterations === Infinity).length);
     record("motion: no looping animation on a settled overview", looping === 0, `${looping} looping`);
+    await context.close();
+  }
+}
+
+// Accessibility: axe (WCAG 2.x A/AA + best practice) on every workspace route and key states; visible keyboard focus.
+async function a11yChecks(browser) {
+  const axeSource = readFileSync(new URL("../frontend/node_modules/axe-core/axe.min.js", import.meta.url), "utf8");
+  const scan = async (page, label) => {
+    await page.addScriptTag({ content: axeSource });
+    const found = await page.evaluate(async () => {
+      const r = await axe.run(document, { runOnly: ["wcag2a", "wcag2aa", "wcag21aa", "best-practice"] });
+      return r.violations.map((v) => v.id + "(" + v.nodes.length + "): " + v.nodes[0].target.join(" ").slice(0, 60));
+    });
+    record(`a11y: ${label} has no axe violations`, found.length === 0, found.join(" | "));
+  };
+  const json = (body, status = 200) => (r) => r.fulfill({ status, contentType: "application/json", body: JSON.stringify(body) });
+  const visit = async (browser, width, path, setup) => {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await ensureRun(context.request);
+    const page = await context.newPage();
+    if (setup) await setup(page);
+    await page.goto(base + path, { waitUntil: "networkidle" });
+    await page.waitForTimeout(500);
+    return { context, page };
+  };
+  for (const s of sections) {
+    const { context, page } = await visit(browser, 1280, "/app/" + s);
+    await scan(page, s + " @1280");
+    await context.close();
+  }
+  for (const [width, label] of [[1440, "docked evidence pane @1440"], [768, "evidence sheet @768"], [390, "evidence sheet @390"]]) {
+    const { context, page } = await visit(browser, width, "/app/transactions");
+    await page.locator(".id-button").first().click();
+    await page.locator(width >= 1100 ? ".tx-pane" : "[role=dialog]").waitFor();
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
+    await scan(page, label);
+    await context.close();
+  }
+  {
+    const { context, page } = await visit(browser, 1280, "/app/assistant");
+    await page.locator(".suggestions button").first().click();
+    await page.waitForTimeout(800);
+    await scan(page, "evidence search results @1280");
+    await context.close();
+  }
+  for (const [route, width] of [["/", 375], ["/", 1280], ["/login", 375], ["/login", 1280]]) {
+    const { context, page } = await visit(browser, width, route);
+    await scan(page, `${route} @${width}`);
+    await context.close();
+  }
+  {
+    const { context, page } = await visit(browser, 375, "/app/assistant");
+    await page.locator("#evidence-query").fill("A".repeat(290));
+    await page.getByRole("button", { name: /search/i }).first().click();
+    await page.waitForTimeout(800);
+    record("evidence search: a 290-character query does not overflow @375", await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    await scan(page, "evidence search with a long query @375");
+    await context.close();
+  }
+  for (const [label, setup] of [
+    ["server error state", (page) => page.route("**/api/runs", json({ detail: "boom" }, 500))],
+    ["session-ended state", (page) => page.route("**/api/runs", json({ detail: "Sign in to use the workspace." }, 401))],
+    ["empty workspace state", async (page) => { await page.route("**/api/runs", json([])); await page.route("**/api/datasets", json([])); await page.route("**/api/cases", json([])); }],
+  ]) {
+    const { context, page } = await visit(browser, 1280, "/app/overview", setup);
+    await scan(page, label);
+    await context.close();
+  }
+  {
+    const { context, page } = await visit(browser, 1280, "/app/transactions");
+    const stops = [];
+    for (let i = 0; i < 14; i++) {
+      await page.keyboard.press("Tab");
+      stops.push(await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el || el === document.body) return "body";
+        const s = getComputedStyle(el);
+        const ring = (s.outlineStyle !== "none" && parseFloat(s.outlineWidth) > 0) || (s.boxShadow && s.boxShadow !== "none");
+        return ring ? "" : (el.tagName + "." + el.className).slice(0, 40);
+      }));
+    }
+    const bad = stops.filter(Boolean);
+    record("a11y: the first 14 Tab stops on Transactions all show a focus indicator", bad.length === 0, bad.join(", "));
+    await context.close();
+  }
+}
+
+// Worst-case data: long unbroken labels, huge/zero/negative amounts, 1-day age. Injected into the real /api/runs response.
+async function worstCaseChecks(browser) {
+  const longId = "WORST-" + "X".repeat(70);
+  for (const width of [375, 768, 1280, 1440]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await ensureRun(context.request);
+    const page = await context.newPage();
+    await page.route(/\/api\/runs\/[^/?]+$/, async (route) => {
+      const response = await route.fetch();
+      const run = await response.json();
+      const tx = run.transactions;
+      Object.assign(tx[0], { transaction_id: longId, account_id: "ACC-" + "9".repeat(40), device_id: "DEV-" + "8".repeat(40), merchant: "Extraordinarily-Long-Merchant-Name-With-No-Break-Opportunities".repeat(2).slice(0, 150), amount: 98765432109.5, account_age_days: 1, risk_score: 99.9, flagged: true });
+      Object.assign(tx[1], { transaction_id: "WORST-ZERO", amount: 0 });
+      Object.assign(tx[2], { transaction_id: "WORST-NEG", amount: -45.5 });
+      await route.fulfill({ response, json: run });
+    });
+    await page.goto(base + "/app/transactions?q=WORST", { waitUntil: "networkidle" });
+    await page.locator(".id-button").first().waitFor();
+    const rows = await page.locator(".id-button").count();
+    record(`worst case: long, zero and negative rows all render @${width}`, rows === 3, `${rows} rows`);
+    record(`worst case: no horizontal overflow in the list @${width}`, await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    if (width >= 720) {
+      record(`worst case: the ID cell does not run under the amount (and the table fits at 1280+) @${width}`, await page.evaluate((id) => {
+        const row = [...document.querySelectorAll(".tx-table tbody tr")].find((r) => r.textContent.includes(id));
+        const a = row.querySelector(".c-id").getBoundingClientRect();
+        const b = row.querySelector(".c-amount").getBoundingClientRect();
+        const scroller = document.querySelector(".table-scroll");
+        return (innerWidth < 1280 || scroller.scrollWidth <= scroller.clientWidth + 1) && [...row.querySelectorAll(".c-id button, .c-id small")].every((e) => e.getBoundingClientRect().right <= b.left + 1) && a.right <= b.left + 1;
+      }, longId));
+    }
+    await page.locator(".id-button", { hasText: "X".repeat(20) }).first().click();
+    await page.locator(width >= 1100 ? ".tx-pane" : "[role=dialog]").waitFor();
+    await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"));
+    record(`worst case: evidence has no horizontal overflow @${width}`, await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth));
+    record(`worst case: evidence content stays inside its container @${width}`, await page.evaluate(() => {
+      const box = document.querySelector(".tx-pane, .sheet").getBoundingClientRect();
+      return [...document.querySelectorAll(".tx-pane *, .sheet *")].every((e) => { const r = e.getBoundingClientRect(); return !r.width || (r.right <= box.right + 1 && r.left >= box.left - 1); });
+    }));
+    record(`worst case: sticky action bar is flush with the bottom of its container @${width}`, await page.evaluate(() => {
+      const box = document.querySelector(".tx-pane, .sheet");
+      box.scrollTop = 120;
+      const bar = box.querySelector(".drawer-actions").getBoundingClientRect();
+      const edge = box.getBoundingClientRect();
+      return Math.abs(bar.bottom - (edge.bottom - parseFloat(getComputedStyle(box).borderBottomWidth))) <= 1.5;
+    }));
+    record(`worst case: "1 day" is singular @${width}`, (await page.getByText("1 day", { exact: true }).count()) === 1);
+    await context.close();
+  }
+  {
+    const context = await browser.newContext({ viewport: { width: 768, height: 900 } });
+    await ensureRun(context.request);
+    const page = await context.newPage();
+    await page.goto(base + "/app/transactions", { waitUntil: "networkidle" });
+    await page.locator(".id-button").first().waitFor();
+    record("tablet: the transaction table fits at 768 with ordinary data (no sideways scroll)", await page.evaluate(() => { const s = document.querySelector(".table-scroll"); return s.scrollWidth <= s.clientWidth + 1; }));
+    await context.close();
+  }
+  for (const width of [360, 375, 390, 768, 1280]) {
+    const context = await browser.newContext({ viewport: { width, height: 900 } });
+    await ensureRun(context.request);
+    const page = await context.newPage();
+    await page.goto(base + "/app/overview", { waitUntil: "networkidle" });
+    await page.locator(".stat-value").first().waitFor();
+    const split = await page.evaluate(() => [...document.querySelectorAll(".stat-value")].filter((e) => e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 1.15 * 1.5).map((e) => e.textContent));
+    record(`overview: every headline figure stays on one line @${width}`, split.length === 0, split.join(" | "));
     await context.close();
   }
 }
@@ -476,6 +628,8 @@ if (!only || only === "explore") await exploreChecks(browser);
 if (!only || only === "states") await stateChecks(browser);
 if (!only || only === "models") await modelChecks(browser);
 if (!only || only === "motion") await motionChecks(browser);
+if (!only || only === "a11y") await a11yChecks(browser);
+if (!only || only === "worst") await worstCaseChecks(browser);
 await browser.close();
 
 const failed = results.filter((r) => !r.ok);

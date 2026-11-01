@@ -538,7 +538,7 @@ input[type="checkbox"] {
   color: #788c6b;
   padding-top: 3px;
 }
-.pipeline-step h4 {
+.pipeline-step h3 {
   font-size: 15px;
 }
 .pipeline-step p {

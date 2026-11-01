@@ -1,6 +1,6 @@
 # Refinement backlog
 
-Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (108 of 108 checks pass), `pytest` (41 pass), `next build`, and screenshots in `docs/refinement/screenshots/`. The design system is `DESIGN.md`.
+Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (160 of 160 checks pass; `execution/auth_check.mjs` 23 of 23), `pytest` (41 pass), `next build`, and screenshots in `docs/refinement/screenshots/`. The design system is `DESIGN.md`.
 
 ## Completed
 
@@ -16,15 +16,18 @@ Updated 2026-11-01. Evidence is `node execution/ui_check.mjs` (108 of 108 checks
 | Cross-cutting | One transaction table everywhere; 401 shows "Your session ended" with a sign-in link; unreachable API says so; `?tx=` reopens evidence, Back and Forward work | gate `routes` |
 | Marketing copy | Removed "new standard", the live-looking status dots, "explainable", "learning platform", "ML laboratory" | tsc, build |
 | Motion pass | Press scale, sheet and overlay enter/exit by `data-state`, keyboard opens skip animation, reduced motion keeps fades, hover lifts and decorative loops removed, instant in-app scroll, chart tooltip no longer travels | gate `motion` (16 checks) |
+| Production review | Dialog names, table fit and truncation, sticky bar, headline figures, focusable scroll regions, marketing contrast and headings, favicon, security headers, return path after expiry | gate `a11y`, `worst`; `auth_check.mjs`; `production-review.md` |
 
 ## Blockers and decisions needed
 
 1. **Marketing visual redesign** (`/`). Only the overclaiming copy was fixed. Restyling it needs a decision on a Persuade-mode direction; Instrument is approved for the workspace only. The page still uses olive/sage literals.
-2. **Session expiry with a real password**: tested by simulating a 401 at the network layer. A real expired cookie was not exercised because the dev server runs with the owner password unset.
-3. **Axe scan** (experience step 7) not run; focus, labels and ARIA were checked by hand and by gate only.
+2. ~~Session expiry with a real password~~ Resolved by `execution/auth_check.mjs`: expired, forged and missing cookies against a production server.
+3. ~~Axe scan~~ Resolved: axe runs in the gate on every route and key state. See `production-review.md`.
 4. **README, VERIFICATION, SKILL** still describe old labels and need reconciling with this behaviour.
 
 ## Remaining gaps
+
+See `production-review.md` for the manual and deployed checks still open, and for backend blockers (unpaged, uncompressed run payload).
 
 - No arrow-key stepping between transaction rows.
 - Closing evidence uses `history.back()`, which is asynchronous: reopening within a few milliseconds of Escape (faster than a human) is undone by the pending back.

@@ -17,6 +17,6 @@ export default async function Page({
 }) {
   const { section } = await params;
   if (!sections.includes(section)) notFound();
-  if (!(await isAuthenticated())) redirect("/login");
+  if (!(await isAuthenticated())) redirect("/login?next=/app/" + section);
   return <Workspace section={section} />;
 }
