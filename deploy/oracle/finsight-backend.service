@@ -1,0 +1,20 @@
+[Unit]
+Description=FinSight AI backend (FastAPI)
+After=network.target
+
+[Service]
+User=finsight
+WorkingDirectory=/opt/finsight
+EnvironmentFile=/etc/finsight.env
+# One worker on purpose: case writes are serialised by an in-process lock.
+ExecStart=/opt/finsight/.venv/bin/uvicorn backend.main:app --host 127.0.0.1 --port 8000 --workers 1
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/finsight
+
+[Install]
+WantedBy=multi-user.target

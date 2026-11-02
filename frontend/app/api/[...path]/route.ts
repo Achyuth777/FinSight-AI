@@ -11,7 +11,9 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
   let backend: URL;
   try {
     backend = new URL(base);
-    if (backend.protocol !== "https:" && !(process.env.NODE_ENV !== "production" && backend.hostname === "127.0.0.1")) throw new Error("HTTPS required");
+    // Plain HTTP is accepted only for a backend on this machine (loopback never leaves the host); anything remote must be HTTPS.
+    const loopback = backend.protocol === "http:" && ["127.0.0.1", "[::1]"].includes(backend.hostname);
+    if (backend.protocol !== "https:" && !loopback) throw new Error("HTTPS required");
     if (backend.username || backend.password || backend.search || backend.hash) throw new Error("Invalid API base");
   } catch {
     return NextResponse.json({ detail: "Invalid backend configuration." }, { status: 503 });
@@ -43,7 +45,7 @@ async function forward(request: NextRequest, context: { params: Promise<{ path: 
     if (disposition) responseHeaders.set("Content-Disposition", disposition);
     return new Response(upstream.body, { status: upstream.status, headers: responseHeaders });
   } catch {
-    return NextResponse.json({ detail: "Backend unavailable. Render may be waking up." }, { status: 502 });
+    return NextResponse.json({ detail: "Backend unavailable. It may still be starting; try again in a moment." }, { status: 502 });
   }
 }
 export { forward as GET, forward as POST, forward as PATCH };

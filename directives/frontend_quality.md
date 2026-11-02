@@ -15,6 +15,6 @@ Steps:
 Learnings:
 
 - A scratch database is mandatory: the gate imports files and creates cases, and the latest run is what the workspace shows.
-- Production mode needs an HTTPS backend; use the dev server for populated states and `auth_check.mjs` for the web layer.
+- Production mode accepts a loopback (`127.0.0.1`) HTTP backend or any HTTPS one; the populated-state checks still use the dev server for populated states and `auth_check.mjs` for the web layer.
 - Do not delete Tailwind without a pixel comparison: its preflight reset is still in use.
 - Capture comparison screenshots with animations disabled and wait for dev hot reload to finish, or identical builds will differ.

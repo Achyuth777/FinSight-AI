@@ -1,0 +1,19 @@
+[Unit]
+Description=FinSight AI web app (Next.js)
+After=network.target finsight-backend.service
+Wants=finsight-backend.service
+
+[Service]
+User=finsight
+WorkingDirectory=/opt/finsight/frontend
+EnvironmentFile=/etc/finsight.env
+ExecStart=/usr/bin/node node_modules/next/dist/bin/next start --hostname 127.0.0.1 --port 3000
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

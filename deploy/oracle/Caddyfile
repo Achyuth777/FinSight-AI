@@ -1,0 +1,7 @@
+# setup.sh replaces __DOMAIN__ with your hostname. Caddy obtains and renews the HTTPS certificate by itself.
+__DOMAIN__ {
+	encode zstd gzip
+	# No includeSubDomains: a shared domain such as duckdns.org must not be pinned as a whole.
+	header Strict-Transport-Security "max-age=31536000"
+	reverse_proxy 127.0.0.1:3000
+}

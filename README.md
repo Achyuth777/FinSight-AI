@@ -52,7 +52,7 @@ Names only; set them in your shell (the launcher does not load `.env`). See `.en
 | Name | Used by | Purpose |
 |---|---|---|
 | `DATABASE_URL` | backend | SQLAlchemy URL; defaults to a local SQLite file |
-| `API_URL` | web app | Base URL of the FastAPI backend. Defaults to `http://127.0.0.1:8000` outside production. In production it must be HTTPS or the proxy answers 503 |
+| `API_URL` | web app | Base URL of the FastAPI backend. Defaults to `http://127.0.0.1:8000` outside production. A remote backend must be HTTPS; plain HTTP is accepted only for a loopback address (`127.0.0.1`, `[::1]`), otherwise the proxy answers 503 |
 | `FINSIGHT_OWNER_PASSWORD` | web app | Workspace password, 16+ characters. With it unset and `NODE_ENV` not `production`, the workspace opens without sign-in (local development only) |
 | `FINSIGHT_SESSION_SECRET` | web app | Signs the session cookie, 32+ characters |
 | `FINSIGHT_API_KEY` | web app and backend | Shared secret sent as `X-Finsight-API-Key`; 32+ characters and required in production. The backend answers 503 when it has no key and `FINSIGHT_INSECURE_DEV` is off |
@@ -142,7 +142,7 @@ Results, screenshots and open items: `docs/refinement/release-review.md`. Earlie
 
 - Single shared password; no user accounts, roles, audit identity or workspace isolation.
 - `GET /api/runs/{id}` returns every transaction (about 614 KB for 1,200 rows, about 10 MB at the 20,000-row limit) with no paging.
-- In production the web app only talks to an HTTPS backend, so a full local production run needs a TLS-terminated API.
+- The web app only talks to a remote backend over HTTPS. A backend on the same machine can use `http://127.0.0.1:8000`, so a full production run needs no TLS on the API.
 - No ESLint is configured. Screen-reader, real-device and deployed-environment checks have not been run (see the release review).
 - The marketing page has not been restyled to the workspace design system.
 - Models retrain per experiment; there is no artifact storage, migration system or streaming inference.
