@@ -127,7 +127,7 @@ def read_run(id:str,transactions:bool=True):
     rows=run.get('transactions',[])
     return {**{k:v for k,v in run.items() if k!='transactions'},'transaction_count':len(rows),'flagged_count':sum(1 for t in rows if t.get('flagged'))}
 @app.get('/api/runs/{id}/transactions')
-def run_transactions(id:str,limit:int=Query(25,ge=1,le=200),offset:int=Query(0,ge=0),sort:Literal['risk','amount','recent']='risk',q:str=Query('',max_length=100),risk:Literal['all','flagged','high']='all',min_amount:float|None=Query(None,ge=0),split:Literal['all','train','test']='all'):
+def run_transactions(id:str,limit:int=Query(25,ge=1,le=200),offset:int=Query(0,ge=0),sort:Literal['risk','amount','recent']='risk',q:str=Query('',max_length=100),risk:Literal['all','flagged','high']='all',min_amount:float|None=Query(None,ge=0),min_risk:float|None=Query(None,ge=0,le=100),split:Literal['all','train','test']='all'):
     """One page of a run's transactions, filtered and sorted on the server (same rules as the Transactions screen)."""
     rows=get(id,'run').get('transactions',[])
     flagged=[t['risk_score'] for t in rows if t.get('flagged')]
@@ -136,6 +136,7 @@ def run_transactions(id:str,limit:int=Query(25,ge=1,le=200),offset:int=Query(0,g
         (not needle or needle in ' '.join(str(t.get(k,'')) for k in ('transaction_id','account_id','merchant','device_id')).lower()) and
         (risk=='all' or (t.get('flagged') if risk=='flagged' else t['risk_score']>=95)) and
         (min_amount is None or t['amount']>=min_amount) and
+        (min_risk is None or t['risk_score']>=min_risk) and
         (split=='all' or t.get('split')==split)]
     key={'risk':lambda t:t['risk_score'],'amount':lambda t:t['amount'],'recent':lambda t:t['timestamp']}[sort]
     keep.sort(key=key,reverse=True)  # stable, so ties keep run order

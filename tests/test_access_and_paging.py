@@ -53,6 +53,9 @@ def test_transactions_page_matches_client_rules():
     assert hit['total']>=1 and any(t['transaction_id']==one['transaction_id'] for t in hit['items'])
     held=client.get(f"/api/runs/{r['id']}/transactions",params={'split':'test','limit':200}).json()
     assert held['total']==sum(1 for t in rows if t['split']=='test')
+    threshold=client.get(f"/api/runs/{r['id']}/transactions",params={'min_risk':80,'limit':200}).json()
+    assert threshold['total']==sum(1 for t in rows if t['risk_score']>=80)
+    assert all(t['risk_score']>=80 for t in threshold['items'])
 
 def test_transactions_page_rejects_bad_parameters():
     r=_run()
@@ -61,4 +64,6 @@ def test_transactions_page_rejects_bad_parameters():
     assert client.get(base,params={'limit':500}).status_code==422
     assert client.get(base,params={'sort':'nope'}).status_code==422
     assert client.get(base,params={'min_amount':-1}).status_code==422
+    assert client.get(base,params={'min_risk':-1}).status_code==422
+    assert client.get(base,params={'min_risk':101}).status_code==422
     assert client.get('/api/runs/missing/transactions').status_code==404
