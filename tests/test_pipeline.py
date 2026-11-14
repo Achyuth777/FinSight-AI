@@ -1,6 +1,6 @@
 import numpy as np
 import pytest
-from execution.pipeline import demo_data,validate_csv,train,feature_matrix
+from execution.pipeline import demo_data,validate_csv,train,feature_matrix,evaluate
 
 def frame():return validate_csv(demo_data(300).to_csv(index=False).encode())
 def test_deterministic_and_temporal():
@@ -62,3 +62,7 @@ def test_duplicate_csv_column_headers_are_rejected_before_dataframe_parsing():
 
     with pytest.raises(ValueError, match='Duplicate CSV column names'):
         validate_csv(('\n'.join(lines)).encode('utf-8'))
+
+def test_evaluation_includes_f1_score():
+    metrics = evaluate(np.array([0, 0, 1, 1]), np.array([0.1, 0.4, 0.6, 0.9]), np.array([0, 1, 1, 1]))
+    assert metrics['f1'] == pytest.approx(0.8)
