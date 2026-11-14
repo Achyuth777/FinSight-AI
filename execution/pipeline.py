@@ -5,7 +5,7 @@ import time
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import IsolationForest
-from sklearn.metrics import average_precision_score, roc_auc_score, precision_score, recall_score, confusion_matrix
+from sklearn.metrics import average_precision_score, roc_auc_score, precision_score, recall_score, f1_score, confusion_matrix
 
 FEATURES = ['amount', 'hour', 'velocity_1h', 'account_age_days', 'distance_km']
 REQUIRED = ['transaction_id', 'timestamp', 'account_id', 'device_id', 'merchant', 'amount', 'velocity_1h', 'account_age_days', 'distance_km']
@@ -95,6 +95,7 @@ def evaluate(y, score, predicted):
             'average_precision': float(average_precision_score(y, score)),
             'precision': float(precision_score(y, predicted, zero_division=0)),
             'recall': float(recall_score(y, predicted, zero_division=0)),
+            'f1': float(f1_score(y, predicted, zero_division=0)),
             'confusion_matrix': confusion_matrix(y, predicted, labels=[0,1]).tolist()}
 
 
